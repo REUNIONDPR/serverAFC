@@ -2,14 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const authRouter = require('./routes/auth.route.js');
 const userRouter = require('./routes/user.routes');
+const globalRouter = require('./routes/global.routes');
 const catalogueRouter = require('./routes/catalogue.route');
-
-// const passport = require('passport');
-// const LocalStrategy = require('passport-local').Strategy;
-// const passportJWT      = require('passport-jwt');
-// const ExtractJWT       = passportJWT.ExtractJwt;
-// const JWTStrategy      = passportJWT.Strategy;
-// const { cpuUsage } = require('process');
 
 require('dotenv').config();
 require('./passport/Passport');
@@ -25,10 +19,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
- 
-  // res.header('Set-Cookie','SameSite=None, Secure');
-  // res.header('Cross-origin-Embedder-Policy', 'require-corp');
-  // res.header('Cross-origin-Opener-Policy','same-origin');
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
     'Access-Control-Allow-Headers',
@@ -44,14 +34,6 @@ app.get('/', function (req, res) {
   res.sendFile('index.html', { root: __dirname })
 })
 
-app.get('/api/hello', (req, res) => {
-  res.send({ express: 'Hello From Expreszezs' });
-});
-
-app.post('/api/test', (req, res) => {
-  console.log(req.body)
-});
-
 app.post('/api/world', (req, res) => {
   console.log(req.body);
   io.emit("sms", req.body.post);
@@ -62,6 +44,7 @@ app.post('/api/world', (req, res) => {
 
 app.use('/user', userRouter);
 app.use('/auth', authRouter);
+app.use('/global', globalRouter);
 app.use('/catalogue', catalogueRouter);
 
 // pool.getConnection(function(err) {
@@ -75,23 +58,26 @@ server.listen(port, () => console.log(`Listening on port ${port}`));
 const socket = require("socket.io");
 const io = socket(server, {
   cors: {
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST', 'PUT']
   }
 })
+app.set('io',io);
 
+io.emit("updateCatalogue", 'result');
 
 io.on('connection', (socket) =>{
   console.log(`Connecté au client IRLE5360_${socket.id}`)
-  socket.emit("etatConnection", {message:'Connecté !', severity:'success'});
-  socket.on('event', (message) => {
-    console.log('event emit socket')
-    io.emit("eventResponse", message);
+
+  io.emit("etatConnection", {message:'Connecté !', severity:'success'});
+  socket.on('updateCatalogue', (data) => {
+    io.emit("updateCatalogue2", {message:'mise a jour réussi'})
   })
   socket.on("disconnect", () => {
     io.emit("etatConnection", {message:'Déconnecté !'});
     console.log(`Déconnection du client IRLE5360_${socket.id}`);
     socket.disconnect(0);
   });
+  
 })
 
 // app.listen(port, () => {
