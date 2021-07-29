@@ -3,46 +3,23 @@ const passport = require('passport');
 const router = express.Router();
 const pool = require('../config/db.config');
 
-router.get('/getLot', passport.authenticate('jwt', { session: false }), (request, response) => {
+router.get('/count', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sql = `SELECT id as value, libelle FROM lot`;
-
-    pool.getConnection(function (error, conn) {
-        if (error) throw err;
-        conn.query(sql, (err, result) => {
-            conn.release();
-
-            if (err) {
-                console.log(err.sqlMessage)
-                return resp.status(500).json({
-                    err: "true",
-                    error: err.message,
-                    errno: err.errno,
-                    sql: err.sql,
-                });
-            }
-            else {
-                response.status(200).json(result);
-            }
-
-        });
-    });
-
-})
-
-router.get('/findName', passport.authenticate('jwt', { session: false }), (request, response) => {
-    const data = request.query;
-    let sqlValues = []
-    
-    let sql = `SELECT libelle FROM ${data.t} WHERE id = ?`;
-    sqlValues.push(data.v)
+    let sql = `SELECT count(id) as count FROM sollicitation_formation`;
+    let sqlValues = [];
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
-    
-        conn.query(sql, [sqlValues], (err, result) => {
+        
+        let data = request.query;
+        if(data.s > 0){
+            sql += ' WHERE statut = ?';
+            sqlValues.push(data.s)
+        }
+        
+        conn.query(sql, sqlValues, (err, result) => {
             conn.release();
-    
+            
             if (err) {
                 console.log(err.sqlMessage)
                 return response.status(500).json({
@@ -56,20 +33,33 @@ router.get('/findName', passport.authenticate('jwt', { session: false }), (reque
             }
         });
     });
-
 })
 
 router.get('/findAll', passport.authenticate('jwt', { session: false }), (request, response) => {
-
-    const data = request.query;
-    let sql = `SELECT * FROM ${data.table}`;
+    let sql = `SELECT f.id, id_lot as lot, 
+    f.user as 'display_user',
+    f.statut as display_s_formation,
+    f.dispositif as display_dispositif,
+    nb_place,
+    dateEntree,
+    dateIcop,
+    nConv,
+    dateFin 
+    FROM sollicitation_formation f`;
+    let sqlValues = [];
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
-    
-        conn.query(sql, [], (err, result) => {
+        
+        let data = request.query;
+        if(data.s > 0){
+            sql += ' WHERE statut = ?';
+            sqlValues.push(data.s)
+        }
+        
+        conn.query(sql, sqlValues, (err, result) => {
             conn.release();
-    
+            
             if (err) {
                 console.log(err.sqlMessage)
                 return response.status(500).json({
@@ -83,8 +73,6 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
             }
         });
     });
-
-});
-
+})
 
 module.exports = router;

@@ -4,6 +4,9 @@ const authRouter = require('./routes/auth.route.js');
 const userRouter = require('./routes/user.routes');
 const globalRouter = require('./routes/global.routes');
 const catalogueRouter = require('./routes/catalogue.route');
+const adresseRouter = require('./routes/adresse.routes');
+const formationRouter = require('./routes/formation.routes');
+const lotRouter = require('./routes/lot.routes');
 
 require('dotenv').config();
 require('./passport/Passport');
@@ -46,6 +49,9 @@ app.use('/user', userRouter);
 app.use('/auth', authRouter);
 app.use('/global', globalRouter);
 app.use('/catalogue', catalogueRouter);
+app.use('/adresse', adresseRouter);
+app.use('/formation', formationRouter);
+app.use('/lot', lotRouter);
 
 // pool.getConnection(function(err) {
 //   if (err) throw err;
