@@ -37,15 +37,9 @@ router.get('/count', passport.authenticate('jwt', { session: false }), (request,
 
 router.get('/findAll', passport.authenticate('jwt', { session: false }), (request, response) => {
     let sql = `SELECT f.id, id_lot as lot, 
-    f.user as 'display_user',
-    f.statut as display_s_formation,
-    f.dispositif as display_dispositif,
-    nb_place,
-    dateEntree,
-    dateIcop,
-    nConv,
-    dateFin 
-    FROM sollicitation_formation f`;
+        f.user, f.statut as display_s_formation, f.dispositif as display_dispositif, 
+        nb_place, dateEntree, dateIcop, nConv, dateFin 
+        FROM sollicitation_formation f`;
     let sqlValues = [];
 
     pool.getConnection(function (error, conn) {

@@ -76,7 +76,7 @@ io.on('connection', (socket) =>{
 
   io.emit("etatConnection", {message:'Connecté !', severity:'success'});
   socket.on('updateCatalogue', (data) => {
-    io.emit("updateCatalogue2", {message:'mise a jour réussi'})
+    io.emit("updateRow", data)
   })
   socket.on("disconnect", () => {
     io.emit("etatConnection", {message:'Déconnecté !'});
