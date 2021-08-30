@@ -4,14 +4,12 @@ const router = express.Router();
 const pool = require('../config/db.config');
 
 router.get('/find', passport.authenticate('jwt', { session: false }), (request, response) => {
-    
+
     let sqlValues = [];
     let sql = `SELECT a.id, a.adresse
         FROM adresse a 
-        LEFT JOIN adresse_attributaire adt ON adt.id_adresse = a.id
-        LEFT JOIN adresse_catalogue adc ON adc.id_adr_attr = adt.id
-        LEFT JOIN catalogue c ON c.id = adc.id_elmt
-        WHERE c.id = ?`;
+        LEFT JOIN adresse_catalogue ac ON ac.id_adresse = a.id
+        WHERE ac.id_cata = ?`;
     sqlValues.push(request.query.id);
 
     pool.getConnection(function (error, conn) {
@@ -21,7 +19,7 @@ router.get('/find', passport.authenticate('jwt', { session: false }), (request, 
 
             if (err) {
                 console.log(err.sqlMessage)
-                return resp.status(500).json({
+                return response.status(500).json({
                     err: "true",
                     error: err.message,
                     errno: err.errno,
@@ -37,4 +35,5 @@ router.get('/find', passport.authenticate('jwt', { session: false }), (request, 
 
 })
 
-module.exports = router;    
+
+module.exports = router;

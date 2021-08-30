@@ -7,6 +7,8 @@ const catalogueRouter = require('./routes/catalogue.route');
 const adresseRouter = require('./routes/adresse.routes');
 const formationRouter = require('./routes/formation.routes');
 const lotRouter = require('./routes/lot.routes');
+const morgan = require('morgan');
+
 
 require('dotenv').config();
 require('./passport/Passport');
@@ -18,6 +20,7 @@ const server = require('http').Server(app)
 const myCookie = 'IRLE5360';
 
 
+app.use(morgan('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 

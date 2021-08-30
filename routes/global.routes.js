@@ -63,11 +63,18 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
 
     const data = request.query;
     let sql = `SELECT * FROM ${data.table}`;
+    let sqlValues = [];
 
+    Object.entries(data).filter(([k,v]) => k !== 'table').map(([k,v], i) => {
+        i === 0 ? sql += ' WHERE ' : sql += ' AND '; 
+        sql += k + '=?';
+        sqlValues.push(v);
+    })
+    
     pool.getConnection(function (error, conn) {
         if (error) throw err;
     
-        conn.query(sql, [], (err, result) => {
+        conn.query(sql, sqlValues, (err, result) => {
             conn.release();
     
             if (err) {
