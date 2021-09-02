@@ -62,7 +62,8 @@ router.get('/findName', passport.authenticate('jwt', { session: false }), (reque
 router.get('/findAll', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     const data = request.query;
-    let sql = `SELECT * FROM ${data.table}`;
+    let sql = `SELECT * FROM ${data.table} `;
+    let sqlValues = [];
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;

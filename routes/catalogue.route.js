@@ -18,13 +18,22 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     // LEFT JOIN adresse a ON a.id = adt.id_adresse
     // GROUP BY c.id`;
 
-    let sql = `SELECT c.id, c.lot display_lot, c.n_Article,
-        c.intitule_form_marche, c.formacode,
-        c.niveau_form display_niveau, c.objectif_form display_objectif, 
-        c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB, 
-        c.id as adresse
-        FROM catalogue c
-        ORDER BY c.lot, c.intitule_form_marche, c.n_Article`;
+    let sql = `SELECT c.id, c.id_lot, l.libelle lot, c.n_Article, 
+        c.intitule_form_marche, c.intitule_form_base_article, CONCAT(c_of.priorite, ' - ', of.libelle) of, c_of.id id_of_cata,
+        c.formacode, c.niveau_form, c.objectif_form, 
+        c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB,
+        GROUP_CONCAT(CONCAT(c_of_adr.id_adresse,':',a.adresse, ' - ', v.libelle) SEPARATOR '|')  as adresse
+    
+    FROM catalogue c 
+        LEFT JOIN lot l ON l.id = c.id_lot
+        LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
+        LEFT JOIN catalogue_attributaire_adresse c_of_adr ON c_of_adr.id_catalogue_attributaire = c_of.id 
+    
+        LEFT JOIN adresse a ON a.id = c_of_adr.id_adresse 
+        LEFT JOIN attributaire of ON of.id = c_of.id
+        LEFT JOIN ville v ON v.id = a.commune 
+    
+    GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite `;
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
@@ -51,8 +60,7 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
 
 router.put('/update', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sql = `UPDATE catalogue SET n_Article = ?, intitule_form_marche = ?, 
-        nb_heure_ent = ?, nb_heure_appui = ?, nb_heure_soutien = ?, prixTrancheA = ?, prixTrancheB = ? WHERE id = ?`;
+    let sql = 'UPDATE catalogue SET n_Article = ?, intitule_form_marche = ?, nb_heure_ent = ?, nb_heure_appui = ?, nb_heure_soutien = ?, prixTrancheA = ?, prixTrancheB = ? WHERE id = ?';
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
@@ -76,6 +84,8 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
                     sql: err.sql,
                 });
             } else {
+                let io = request.app.get("io");
+                io.emit("updateCatalogue", request.body);
                 response.status(200).json(result);
             }
         });
@@ -85,12 +95,18 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
 
 router.put('/create', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sql = `INSERT INTO catalogue (lot, n_Article,
-        intitule_form_marche, formacode, niveau_form, objectif_form, nb_heure_socle,
-        nb_heure_ent, nb_heure_appui, nb_heure_soutien, prixTrancheA, prixTrancheB) VALUES (?)`;
+    let sql = 'INSERT INTO catalogue ';
     let sqlValues = [];
-    Object.entries(request.body).map(([k,v]) => {if(k!=='id'){sqlValues.push(v)}})
-    
+    let data = request.body;
+
+    let field = '(' + Object.keys(data).filter((v) => v !== 'id').map((v) => '?').join(',') + ')';
+    sql += '(' + Object.keys(data).filter((v) => v !== 'id').join(',') + ')';
+    sql += ' VALUES ';
+    sql += field;
+
+    sqlValues = Object.entries(data).filter(([k, v]) => k !== 'id').map(([k, v]) => v);
+
+
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         const data = request.body;
@@ -106,6 +122,8 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                     sql: err.sql,
                 });
             } else {
+                let io = request.app.get("io");
+                io.emit("updateCatalogue", request.body);
                 response.status(200).json(result);
             }
         });
@@ -115,31 +133,29 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
 
 router.put('/delete', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sql = `DELETE FROM catalogue WHERE id = ?`;
-    let io = request.app.get("io");
-    io.emit("deleteRow", request.body)
-    // pool.getConnection(function (error, conn) {
-    //     if (error) throw err;
-    //     const data = request.body;
-    //     conn.query(sql, [data.id], (err, result) => {
-    //         conn.release();
+    let sql = 'DELETE FROM catalogue WHERE id = ?';
 
-    //         if (err) {
-    //             console.log(err.sqlMessage)
-    //             return response.status(500).json({
-    //                 err: 'true',
-    //                 error: err.message,
-    //                 errno: err.errno,
-    //                 sql: err.sql,
-    //             });
-    //         } else {
-    //             let io = request.app.get("io");
-    //             io.emit("updateCatalogue", request.body);
-    //             response.status(200).json(result);
-    //         }
-    //     });
-    // });
-    response.status(200);
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+        const data = request.body;
+        conn.query(sql, [request.body.id], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+                let io = request.app.get("io");
+                io.emit("updateCatalogue", request.body);
+                response.status(200).json(result);
+            }
+        });
+    });
 })
 
 module.exports = router;

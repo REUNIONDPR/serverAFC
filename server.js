@@ -6,6 +6,7 @@ const globalRouter = require('./routes/global.routes');
 const catalogueRouter = require('./routes/catalogue.route');
 const adresseRouter = require('./routes/adresse.routes');
 const formationRouter = require('./routes/formation.routes');
+const attributaireRouter = require('./routes/attributaire.routes');
 const lotRouter = require('./routes/lot.routes');
 
 require('dotenv').config();
@@ -49,6 +50,7 @@ app.use('/user', userRouter);
 app.use('/auth', authRouter);
 app.use('/global', globalRouter);
 app.use('/catalogue', catalogueRouter);
+app.use('/attributaire', attributaireRouter);
 app.use('/adresse', adresseRouter);
 app.use('/formation', formationRouter);
 app.use('/lot', lotRouter);

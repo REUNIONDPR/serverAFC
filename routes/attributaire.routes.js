@@ -3,20 +3,22 @@ const passport = require('passport');
 const router = express.Router();
 const pool = require('../config/db.config');
 
-router.get('/count', passport.authenticate('jwt', { session: false }), (request, response) => {
-
-    let sql = `SELECT count(id) as count FROM sollicitation_formation`;
+router.put('/addAdresse', passport.authenticate('jwt', {session:false}), (request, response) => {
+    
+    let sql = 'INSERT INTO catalogue_attributaire_adresse ';
     let sqlValues = [];
+    let data = request.body;
+    
+    let field = '('+Object.keys(data).filter((v) => v !== 'id').map((v) => '?').join(',')+')';
+    sql += '('+Object.keys(data).filter((v) => v !== 'id').join(',')+')';
+    sql += ' VALUES ';
+    sql += field;
 
+    sqlValues = Object.entries(data).filter(([k,v]) => k !== 'id').map(([k, v]) => v);
+    console.log(sql, sqlValues)
     pool.getConnection(function (error, conn) {
         if (error) throw err;
-        
-        let data = request.query;
-        if(data.s > 0){
-            sql += ' WHERE statut = ?';
-            sqlValues.push(data.s)
-        }
-        
+        const data = request.body;
         conn.query(sql, sqlValues, (err, result) => {
             conn.release();
             
@@ -29,28 +31,30 @@ router.get('/count', passport.authenticate('jwt', { session: false }), (request,
                     sql: err.sql,
                 });
             }else{
+                let io = request.app.get("io");
+                io.emit("updateAdresse", request.body);
                 response.status(200).json(result);
             }
         });
     });
+
 })
 
-router.get('/findAll', passport.authenticate('jwt', { session: false }), (request, response) => {
-    let sql = `SELECT f.id,  
-        f.user, f.statut as display_s_formation, f.dispositif as display_dispositif, 
-        nb_place, dateEntree, dateIcop, nConv, dateFin 
-        FROM sollicitation_formation f`;
+router.put('/deleteAdresse', passport.authenticate('jwt', {session:false}), (request, response) => {
+    
+    let sql = 'DELETE FROM catalogue_attributaire_adresse ';
     let sqlValues = [];
+    let data = request.body;
+
+    Object.entries(data).map(([k, v], i) => {
+        i === 0 ? sql += ' WHERE ' : sql += ' AND ';
+        sql += k + '=?';
+        sqlValues.push(v);
+    })
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
-        
-        let data = request.query;
-        if(data.s > 0){
-            sql += ' WHERE statut = ?';
-            sqlValues.push(data.s)
-        }
-        
+        const data = request.body;
         conn.query(sql, sqlValues, (err, result) => {
             conn.release();
             
@@ -63,10 +67,13 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
                     sql: err.sql,
                 });
             }else{
-                response.status(200).json(result);
+                let io = request.app.get("io");
+                io.emit("updateAdresse", request.body);
+                response.status(200).json({});
             }
         });
     });
+
 })
 
 module.exports = router;
