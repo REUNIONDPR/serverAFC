@@ -90,6 +90,40 @@ router.get('/findOuter', passport.authenticate('jwt', { session: false }), (requ
 
 })
 
+router.get('/findOuterCommune', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    let sqlValues = [];
+    let sql = `SELECT * FROM ville WHERE id NOT IN 
+        ( SELECT v.id FROM ville v 
+            LEFT JOIN catalogue_attributaire_commune catc ON catc.id_commune = v.id 
+            WHERE catc.id_cata_attr = ? ) GROUP BY id ORDER BY libelle`;
+
+    const data = request.query;
+    sqlValues.push(data.id_cata_attr);
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+        conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: "true",
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            }
+            else {
+                response.status(200).json(result);
+            }
+
+        });
+    });
+
+})
+
 router.put('/create', passport.authenticate('jwt', {session:false}), (request, response) => {
     
     let sql = 'INSERT INTO adresse ';

@@ -17,8 +17,9 @@ const app = express();
 const port = process.env.PORT;
 const server = require('http').Server(app)
 const myCookie = 'IRLE5360';
+const morgan = require('morgan');
 
-
+app.use(morgan('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
