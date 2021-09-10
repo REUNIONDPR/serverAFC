@@ -87,5 +87,4 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
 
 });
 
-
 module.exports = router;

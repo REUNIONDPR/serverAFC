@@ -4,9 +4,11 @@ const authRouter = require('./routes/auth.route.js');
 const userRouter = require('./routes/user.routes');
 const globalRouter = require('./routes/global.routes');
 const catalogueRouter = require('./routes/catalogue.route');
+const mailrouter = require('./routes/mail.routes');
 const adresseRouter = require('./routes/adresse.routes');
 const formationRouter = require('./routes/formation.routes');
-const attributaireRouter = require('./routes/attributaire.routes');
+const attributaireRouter = require('./routes/attributaire.routes')
+const sollicitationRouter = require('./routes/sollicitation.routes');
 const lotRouter = require('./routes/lot.routes');
 
 require('dotenv').config();
@@ -55,12 +57,12 @@ app.use('/attributaire', attributaireRouter);
 app.use('/adresse', adresseRouter);
 app.use('/formation', formationRouter);
 app.use('/lot', lotRouter);
-
+app.use('/sollicitation', sollicitationRouter);
+app.use('/mail', mailrouter);
 // pool.getConnection(function(err) {
 //   if (err) throw err;
 //   console.log("Connecté à la base de données MySQL!");
 // });
-
 
 server.listen(port, () => console.log(`Listening on port ${port}`));
 
