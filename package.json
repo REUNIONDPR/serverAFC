@@ -19,7 +19,7 @@
     "morgan": "^1.10.0",
     "mysql": "^2.18.1",
     "mysql2": "^2.2.5",
-    "nodemailer": "^6.6.3",
+    "nodemailer": "^6.5.0",
     "nodemon": "^2.0.7",
     "normalize-url": "^6.0.1",
     "passport": "^0.4.1",

@@ -8,11 +8,10 @@ const passport = require('passport');
 const transporter =
     nodemailer.createTransport({
         // host: process.env.SMTP,
-        port: 465,
-        host:'localhost',
+        // port: process.env.SMTP_PORT,
+        port:443,
         secure: false,
         tls: { rejectUnauthorized: false },
-        // proxy: 'ame.pole-emploi.intra',  
     }, {
         from: 'no-reply@reuniondpr.fr',
         subject: 'AFC : Sollicitation',
@@ -29,8 +28,6 @@ transporter.verify(function (error, success) {
 
 router.post('/sendSollicitationOF', passport.authenticate('jwt', { session: false }), (request, response) => {
     const data = request.body
-
-    console.log(data)
 
     transporter.sendMail({
         to: 'raphael.lebon@pole-emploi.fr',

@@ -5,63 +5,153 @@ const router = express.Router();
 const pool = require('../config/db.config');
 
 router.put('/create', passport.authenticate('jwt', { session: false }), (request, response) => {
-    // Créer premiere sollicitation, retourne id, enregistre id_sol
-    // let sqlValues = [];
-    // let data = request.body;
-    // let fieds = ['id_cata',
-    //     'idgasi',
-    //     'statut',
-    //     'agence_ref',
-    //     'dispositif',
-    //     'n_Article',
-    //     'nb_place',
-    //     'vague',
-    //     'id_commune',
-    //     'date_creation',
-    //     'date_entree',
-    //     'date_DDINT1',
-    //     'date_DFINT1',
-    //     'date_DDINT2',
-    //     'date_DFINT2',
-    //     'date_fin',
-    //     'heure_max_session',
-    //     'heure_centre',
-    //     'heure_entreprise',
-    //     'date_nconv',
-    //     'nConv',]
+    let sqlValues = [];
+    let data = request.body;
+    // Envoi id_sol pour aller prendre la suivante (0 si pas d'id)
 
-    // sqlValues = fieds.map((v) => data[v] === '' ? null : data[v])
-    // let field = '(' + fieds.map((v) => v).join(',') + ')';
-    // let value = '(' + fieds.map((v) => '?').join(',') + ')';
+    let sql = `INSERT INTO sollicitation (id_formation, attributaire, dateMailOF) VALUES (?,?,?)`;
 
-            let sql = `SELECT a.* FROM catalogue_attributaire_commune cac
-            INNER JOIN catalogue_attributaire ca ON cac.id_cata_attr = ca.id
-            INNER JOIN attributaire a ON a.id = ca.id_attributaire
-            INNER JOIN formation f ON f.id_cata = ca.id_cata
-            WHERE ca.id_cata = 1 AND cac.id_commune = 7 AND f.id = 19`;
+    let currentDate = new Date();
+    let time =
+        currentDate.getFullYear().toString().padStart(2, '0') + '-' +
+        (currentDate.getMonth() + 1).toString().padStart(2, '0') + '-' +
+        currentDate.getDate().toString().padStart(2, '0') + ' ' +
+        currentDate.getHours().toString().padStart(2, '0') + ":" +
+        currentDate.getMinutes().toString().padStart(2, '0') + ":" +
+        currentDate.getSeconds().toString().padStart(2, '0');
 
-    console.log(data)
+    sqlValues = [data.id, data.attributaire.id, time];
 
-    // pool.getConnection(function (error, conn) {
-    //     if (error) throw err;
-    
-    //     conn.query(sql, [], (err, result) => {
-    //         conn.release();
-    
-    //         if (err) {
-    //             console.log(err.sqlMessage)
-    //             return response.status(500).json({
-    //                 err: 'true',
-    //                 error: err.message,
-    //                 errno: err.errno,
-    //                 sql: err.sql,
-    //             });
-    //         }else{
-    //             response.status(200).json(result);
-    //         }
-    //     });
-    // });
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+
+        conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+                sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat) VALUES (?,?,?)`;
+
+                const jsonResult = JSON.parse(JSON.stringify(result));
+
+                sqlValues = [jsonResult.insertId, 1, time]
+
+                pool.getConnection(function (error, conn) {
+                    if (error) throw err;
+
+                    conn.query(sql, sqlValues, (err, result) => {
+                        conn.release();
+
+                        if (err) {
+                            console.log(err.sqlMessage)
+                            return response.status(500).json({
+                                err: 'true',
+                                error: err.message,
+                                errno: err.errno,
+                                sql: err.sql,
+                            });
+                        } else {
+                            response.status(200).json(result);
+                        }
+                    });
+                });
+            }
+        });
+    });
+})
+
+router.put('/update', passport.authenticate('jwt', { session: false }), (request, response) => {
+    let sqlValues = [];
+    let data = request.body;
+    // Envoi id_sol pour aller prendre la suivante (0 si pas d'id)
+
+
+
+    sql = 'UPDATE sollicitation SET dateRespOF = ? WHERE id = ?'
+    sqlValues = [data.dateTime, data.id_sol];
+    console.log(sql, sqlValues)
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+
+        conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+
+                let sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
+                sqlValues = [data.id_sol, data.etat, data.dateTime, data.reason];
+
+                pool.getConnection(function (error, conn) {
+                    if (error) throw err;
+            
+                    conn.query(sql, sqlValues, (err, result) => {
+                        conn.release();
+            
+                        if (err) {
+                            console.log(err.sqlMessage)
+                            return response.status(500).json({
+                                err: 'true',
+                                error: err.message,
+                                errno: err.errno,
+                                sql: err.sql,
+                            });
+                        }
+                    });
+                });
+                response.status(200).json(result);
+                
+            }
+        });
+    });
+})
+
+router.get('/find', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    let data = request.query;
+    let sql = `SELECT s.id id_sol, s.id_formation, s.attributaire, s.lieu_execution, sh.information,
+    s.id_dateIcop, s.dateValidation, 
+    DATE_FORMAT(s.dateMailOF, '%Y-%m-%d') dateMailOF, DATE_FORMAT(s.dateRespOF, '%Y-%m-%d') dateRespOF,
+    sh.etat, sh.date_etat
+    FROM sollicitation s 
+        LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id 
+        WHERE s.id_formation = ?  and date_etat = 
+            (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) GROUP BY s.id`;
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+
+        conn.query(sql, [data.id_formation], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+                response.status(200).json(result);
+            }
+        });
+    });
 
 })
 
-module.exports = router;  
+module.exports = router;
