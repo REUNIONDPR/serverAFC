@@ -10,18 +10,17 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
         c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
         c.formacode, c.niveau_form, c.objectif_form, 
         c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB,
-        GROUP_CONCAT(CONCAT(c_of_adr.id_adresse,':',a.adresse, ' - ', v_adresse.libelle) SEPARATOR '|')  as adresse,
+        GROUP_CONCAT(CONCAT(catc_adr.id_adresse,':',a.adresse, ' - ', v.libelle) SEPARATOR '|')  as adresse,
         GROUP_CONCAT(CONCAT(v.id, ':', v.libelle) SEPARATOR ' | ') commune
     FROM catalogue c 
         LEFT JOIN lot l ON l.id = c.id_lot
         LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
         LEFT JOIN catalogue_attributaire_commune catc ON catc.id_cata_attr = c_of.id
         LEFT JOIN ville v ON v.id = catc.id_commune
-        LEFT JOIN catalogue_attributaire_adresse c_of_adr ON c_of_adr.id_catalogue_attributaire = c_of.id 
+        LEFT JOIN catalogue_attributaire_commune_adresse catc_adr ON catc_adr.id_catalogue_attributaire_commune = catc.id 
     
-        LEFT JOIN adresse a ON a.id = c_of_adr.id_adresse 
+        LEFT JOIN adresse a ON a.id = catc_adr.id_adresse 
         LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
-        LEFT JOIN ville v_adresse ON v_adresse.id = a.commune 
     
     GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite `;
 

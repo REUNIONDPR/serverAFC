@@ -9,7 +9,6 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
     let data = request.body;
     let fieds = ['id_cata',
         'idgasi',
-        'etat',
         'agence_ref',
         'dispositif',
         'n_Article',
@@ -57,7 +56,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                     : 'INSERT INTO catalogue_compteur (nb,id_cata) VALUES (?,?)';
 
                 let sqlValuesCompt = [data.nbarticle + 1, data.id_cata];
-                
+
                 pool.getConnection(function (error, conn) {
                     if (error) throw err;
                     conn.query(sqlCompt, sqlValuesCompt, (err, result) => {
@@ -143,7 +142,7 @@ router.get('/findAttributaires', passport.authenticate('jwt', { session: false }
                 LEFT JOIN catalogue_attributaire_commune cac ON cac.id_cata_attr = ca.id
                 LEFT JOIN formation f ON f.id_cata = ca.id_cata
                 WHERE f.id = ? GROUP BY a.id ORDER BY ca.priorite`;
-                
+
     pool.getConnection(function (error, conn) {
         if (error) throw err;
 
@@ -203,15 +202,21 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     f.nb_place, f.date_creation, f.date_entree_demandee, f.date_entree_fixe, f.date_DDINT1, f.date_DDINT2, f.date_DFINT1, f.date_DFINT2, 
     f.heure_centre, f.heure_entreprise, f.date_fin, f.heure_max_session, f.adresse, f.vague, f.nConv, f.date_nconv,
     v.id id_commune, v.libelle commune,
-    u.fonction userFct,
-    f.etat, s.libelle etat_formation, s.tooltip etat_formation_tooltip
+    u.fonction userFct, x.attributaire id_attributaire, x.id id_sol,
+    fh.id_etat etat, s.libelle etat_formation, s.tooltip etat_formation_tooltip
         FROM formation f
         LEFT JOIN catalogue c ON c.id = f.id_cata
         LEFT JOIN ville v ON v.id = f.id_commune
         LEFT JOIN user u ON u.id = f.idgasi
-        LEFT JOIN formation_etat s ON s.id = f.etat
-       
-        GROUP BY f.id`;
+        LEFT JOIN formation_historique fh ON fh.id_formation = f.id
+        LEFT JOIN formation_etat s ON s.id = fh.id_etat
+        LEFT JOIN (SELECT s.id_formation, s.attributaire, s.id FROM sollicitation s
+            LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id
+            WHERE sh.etat = 3) x ON x.id_formation = f.id
+
+        WHERE fh.date_etat = 
+            (SELECT MAX(date_etat) FROM formation_historique h WHERE h.id_formation = f.id)
+        GROUP BY f.id ORDER BY f.date_creation DESC`;
     let sqlValues = [];
 
     // COALESCE(z.id_soll_non_refuse,0) id_sol,
@@ -242,6 +247,33 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
             }
         });
     });
+})
+
+router.put('/historique', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    let data = request.body;
+    let sql = 'INSERT INTO formation_historique(id_formation, id_etat, date_etat, information) VALUES (?,?,?,?)';
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+
+        conn.query(sql, [data.id_formation, data.id_etat, data.date_etat, data.information], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+                response.status(200).json(result);
+            }
+        });
+    });
+
 })
 
 module.exports = router;
