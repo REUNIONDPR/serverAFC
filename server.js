@@ -10,6 +10,7 @@ const formationRouter = require('./routes/formation.routes');
 const attributaireRouter = require('./routes/attributaire.routes')
 const sollicitationRouter = require('./routes/sollicitation.routes');
 const lotRouter = require('./routes/lot.routes');
+const brsRouter = require('./routes/brs.routes');
 
 require('dotenv').config();
 require('./passport/Passport');
@@ -59,6 +60,7 @@ app.use('/formation', formationRouter);
 app.use('/lot', lotRouter);
 app.use('/sollicitation', sollicitationRouter);
 app.use('/mail', mailrouter);
+app.use('/brs', brsRouter);
 // pool.getConnection(function(err) {
 //   if (err) throw err;
 //   console.log("Connecté à la base de données MySQL!");

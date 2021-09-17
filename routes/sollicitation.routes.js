@@ -93,25 +93,19 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
                 let sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
                 sqlValues = [data.id_sol, data.etat, data.dateTime, data.reason];
 
-                pool.getConnection(function (error, conn) {
-                    if (error) throw err;
+                conn.query(sql, sqlValues, (err) => {
+                    conn.release();
 
-                    conn.query(sql, sqlValues, (err, result) => {
-                        conn.release();
-
-                        if (err) {
-                            console.log(err.sqlMessage)
-                            return response.status(500).json({
-                                err: 'true',
-                                error: err.message,
-                                errno: err.errno,
-                                sql: err.sql,
-                            });
-                        }
-                    });
+                    if (err) {
+                        console.log(err.sqlMessage)
+                        return response.status(201).json({
+                            err: 'true',
+                            error: err.message,
+                            errno: err.errno,
+                            sql: err.sql,
+                        });
+                    } else response.status(200).json(result);
                 });
-                response.status(200).json(result);
-
             }
         });
     });
@@ -162,7 +156,7 @@ router.put('/save', passport.authenticate('jwt', { session: false }), (request, 
                             errno: err.errno,
                             sql: err.sql,
                         });
-                    }else response.status(200).json(result);
+                    } else response.status(200).json(result);
                 });
 
 
@@ -346,5 +340,88 @@ router.get('/lieuExecution', passport.authenticate('jwt', { session: false }), (
         });
     });
 })
+
+router.get('/OFValidePourBRS', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    let data = request.query;
+    let sql = `SELECT x.attributaire, a.libelle
+
+    FROM formation f
+    LEFT JOIN catalogue c ON c.id = f.id_cata
+
+    INNER JOIN (SELECT s.id_formation, s.attributaire, s.id, sh.etat FROM sollicitation s
+                LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id
+                LEFT JOIN sollicitation_etat se ON sh.etat = se.id
+                LEFT JOIN sollicitation_dateicop si ON si.id = s.id_dateIcop
+                WHERE sh.date_etat = 
+                    (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) 
+            ) x ON x.id_formation = f.id
+            
+    LEFT JOIN attributaire a ON a.id = x.attributaire
+    WHERE id_lot = ? AND x.etat = 5
+    GROUP BY a.id`;
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+
+        conn.query(sql, [data.id_lot], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+                response.status(200).json(result);
+            }
+        });
+    });
+})
+
+router.get('/getFormationEditBRS', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    let data = request.query;
+    let sql = `SELECT f.id
+
+    FROM formation f
+    LEFT JOIN catalogue c ON c.id = f.id_cata
+
+    INNER JOIN (SELECT s.id_formation, s.attributaire, s.id, sh.etat FROM sollicitation s
+                LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id
+                LEFT JOIN sollicitation_etat se ON sh.etat = se.id
+                LEFT JOIN sollicitation_dateicop si ON si.id = s.id_dateIcop
+                WHERE sh.date_etat = 
+                    (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) 
+            ) x ON x.id_formation = f.id
+            
+    LEFT JOIN attributaire a ON a.id = x.attributaire
+    WHERE id_lot = ? AND a.id = ? AND x.etat = 5
+    GROUP BY f.id`;
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+
+        conn.query(sql, [data.id_lot, data.attributaire], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+                response.status(200).json(result);
+            }
+        });
+    });
+})
+
 
 module.exports = router;
