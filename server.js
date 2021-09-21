@@ -11,15 +11,14 @@ const attributaireRouter = require('./routes/attributaire.routes')
 const sollicitationRouter = require('./routes/sollicitation.routes');
 const lotRouter = require('./routes/lot.routes');
 const brsRouter = require('./routes/brs.routes');
+const stocksRouter = require('./routes/stocks.routes');
 
 require('dotenv').config();
 require('./passport/Passport');
 
-const pool = require('./config/db.config');
 const app = express();
 const port = process.env.PORT;
 const server = require('http').Server(app)
-const myCookie = 'IRLE5360';
 const morgan = require('morgan');
 
 app.use(morgan('dev'));
@@ -61,6 +60,7 @@ app.use('/lot', lotRouter);
 app.use('/sollicitation', sollicitationRouter);
 app.use('/mail', mailrouter);
 app.use('/brs', brsRouter);
+app.use('/stocks', stocksRouter);
 // pool.getConnection(function(err) {
 //   if (err) throw err;
 //   console.log("Connecté à la base de données MySQL!");

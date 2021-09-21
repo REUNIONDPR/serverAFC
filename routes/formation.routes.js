@@ -17,6 +17,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
         'id_commune',
         'date_creation',
         'date_entree_demandee',
+        'date_entree_fixe',
         'date_DDINT1',
         'date_DFINT1',
         'date_DDINT2',
@@ -38,7 +39,6 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
         if (error) throw err;
         const data = request.body;
         conn.query(sql, sqlValues, (err, result) => {
-            conn.release();
 
             if (err) {
                 console.log(err.sqlMessage)
@@ -51,15 +51,14 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
             } else {
 
                 // Enregistre dans la table compteur la nouvelle formation
-                let sqlCompt = (data.nbarticle > 0)
-                    ? 'UPDATE catalogue_compteur set nb = ? WHERE id_cata = ?'
-                    : 'INSERT INTO catalogue_compteur (nb,id_cata) VALUES (?,?)';
+                if (!data.createNewFormationFromThis.etat) {
+                    let sqlCompt = (data.nbarticle > 0)
+                        ? 'UPDATE catalogue_compteur set nb = ? WHERE id_cata = ?'
+                        : 'INSERT INTO catalogue_compteur (nb,id_cata) VALUES (?,?)';
 
-                let sqlValuesCompt = [data.nbarticle + 1, data.id_cata];
+                    sqlValuesCompt = [data.nbarticle + 1, data.id_cata];
 
-                pool.getConnection(function (error, conn) {
-                    if (error) throw err;
-                    conn.query(sqlCompt, sqlValuesCompt, (err, result) => {
+                    conn.query(sqlCompt, sqlValuesCompt, (err) => {
                         conn.release();
 
                         if (err) {
@@ -72,6 +71,51 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                             });
                         }
                     });
+                } else {
+                    // Update etat de la formation initial pour Annulé la form. Sera remplacer par la nouvelle
+                    let sqlCancel = 'INSERT INTO formation_historique (id_formation, id_etat, date_etat, information) VALUES (?,?,?,?)';
+                    let sqlValuesCancel = [
+                        data.createNewFormationFromThis.idChange,
+                        20,
+                        data.date_creation,
+                        'Modification ' +
+                        data.createNewFormationFromThis.fieldChange +
+                        ' par ' +
+                        data.createNewFormationFromThis.userChange];
+
+                    conn.query(sqlCancel, sqlValuesCancel, (err) => {
+
+                        if (err) {
+                            console.log(err.sqlMessage)
+                            return response.status(500).json({
+                                err: 'true',
+                                error: err.message,
+                                errno: err.errno,
+                                sql: err.sql,
+                            });
+                        }
+                    });
+                }
+
+                // Enregistre dans formation_historic -> En cours d'élaboration
+                const jsonResult = JSON.parse(JSON.stringify(result));
+
+                let sqlHisto = 'INSERT INTO formation_historique (id_formation, id_etat, date_etat) VALUES (?,?,?)';
+
+                let sqlValuesHisto = [jsonResult.insertId, 1, data.date_creation];
+
+                conn.query(sqlHisto, sqlValuesHisto, (err) => {
+                    conn.release();
+
+                    if (err) {
+                        console.log(err.sqlMessage)
+                        return response.status(500).json({
+                            err: 'true',
+                            error: err.message,
+                            errno: err.errno,
+                            sql: err.sql,
+                        });
+                    }
                 });
 
                 // let io = request.app.get("io");
@@ -198,14 +242,16 @@ router.get('/count', passport.authenticate('jwt', { session: false }), (request,
 })
 
 router.get('/findAll', passport.authenticate('jwt', { session: false }), (request, response) => {
-    let sql = `SELECT f.id, c.id_lot id_lot, c.intitule_form_marche intitule, f.id_cata, f.agence_ref, f.dispositif, f.n_Article,
+    let sql = `SELECT f.id, c.id_lot id_lot, c.intitule_form_marche intitule, f.id_cata, f.agence_ref, a.libelle_ape agence_ref_libelle, f.dispositif, f.n_Article,
     f.nb_place, f.date_creation, f.date_entree_demandee, f.date_entree_fixe, f.date_DDINT1, f.date_DDINT2, f.date_DFINT1, f.date_DFINT2, 
     f.heure_centre, f.heure_entreprise, f.date_fin, f.heure_max_session, f.adresse, f.vague, f.nConv, f.date_nconv,
-    v.id id_commune, v.libelle commune,
+    v.id id_commune, v.libelle commune, 
     u.fonction userFct, x.attributaire id_attributaire, x.id id_sol,
-    fh.id_etat etat, s.libelle etat_formation, s.tooltip etat_formation_tooltip
+    fh.id_etat etat, s.libelle etat_formation, s.tooltip etat_formation_tooltip, COALESCE(cc.nb,0) nbarticle
         FROM formation f
+        LEFT JOIN ape a ON a.id = f.agence_ref
         LEFT JOIN catalogue c ON c.id = f.id_cata
+        LEFT JOIN catalogue_compteur cc ON cc.id_cata = c.id
         LEFT JOIN ville v ON v.id = f.id_commune
         LEFT JOIN user u ON u.id = f.idgasi
         LEFT JOIN formation_historique fh ON fh.id_formation = f.id
@@ -219,14 +265,25 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
         GROUP BY f.id ORDER BY f.date_creation DESC`;
     let sqlValues = [];
 
-    // COALESCE(z.id_soll_non_refuse,0) id_sol,
-    // LEFT JOIN 
-    // (SELECT x.id id_soll_non_refuse, x.id_formation FROM sollicitation x
-    //     LEFT JOIN sollicitation_historique solh ON solh.id_sol = x.id
-    //     WHERE solh.id IS NOT NULL AND x.id not in 
-    //         (SELECT s.id_sol FROM sollicitation_historique s 
-    //             WHERE s.id_sol = x.id AND s.etat = 3)
-    // ) z ON z.id_formation = f.id
+    // `SELECT f.id, c.id_lot id_lot, c.intitule_form_marche intitule, f.id_cata, f.agence_ref, a.libelle_ape agence_ref_libelle, f.dispositif, f.n_Article,
+    // f.nb_place, f.date_creation, f.date_entree_demandee, f.date_entree_fixe, f.date_DDINT1, f.date_DDINT2, f.date_DFINT1, f.date_DFINT2, 
+    // f.heure_centre, f.heure_entreprise, f.date_fin, f.heure_max_session, f.adresse, f.vague, f.nConv, f.date_nconv,
+    // v.id id_commune, v.libelle commune, 
+    // u.fonction userFct, x.attributaire id_attributaire, x.id_sol, (cc.nb,0) nbarticle
+    //     FROM formation f
+    //     LEFT JOIN ape a ON a.id = f.agence_ref
+    //     LEFT JOIN catalogue c ON c.id = f.id_cata
+    //     LEFT JOIN catalogue_compteur cc ON cc.id_cata = c.id
+    //     LEFT JOIN ville v ON v.id = f.id_commune
+    //     LEFT JOIN user u ON u.id = f.idgasi
+    //     LEFT JOIN (SELECT s.id_formation, s.attributaire, s.id id_sol, sh.etat, sh.date_etat FROM sollicitation s
+    //         LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id          
+    //             WHERE sh.date_etat = 
+    //                 (SELECT MAX(date_etat) FROM sollicitation_historique h2 LEFT JOIN sollicitation s2 ON h2.id_sol = s2.id)         
+    //     ) x ON x.id_formation = f.id
+    //     ORDER BY f.date_creation DESC`
+
+
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
