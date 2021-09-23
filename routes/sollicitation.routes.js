@@ -37,11 +37,11 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                     sql: err.sql,
                 });
             } else {
-                sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat) VALUES (?,?,?)`;
+                sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
 
                 const jsonResult = JSON.parse(JSON.stringify(result));
 
-                sqlValues = [jsonResult.insertId, 1, time]
+                sqlValues = [jsonResult.insertId, 1, time, data.idgasi]
 
                 pool.getConnection(function (error, conn) {
                     if (error) throw err;
@@ -145,6 +145,7 @@ router.put('/save', passport.authenticate('jwt', { session: false }), (request, 
                 sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
                 sqlValues = [data.sollicitation.id_sol, data.etat, data.dateTime, data.reason];
 
+                console.log(sql, sqlValues)
                 conn.query(sql, sqlValues, (err) => {
                     conn.release();
 
@@ -197,10 +198,9 @@ router.put('/addToBRS', passport.authenticate('jwt', { session: false }), (reque
                 for (let i = 0; i < data.sollicitation.length; i++) {
 
                     sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
-                    sqlValues = [data.sollicitation[i], 6, data.dateTime, 'id_brs:' + data.id_brs];
+                    sqlValues = [data.sollicitation[i], 9, data.dateTime, 'brs:'+date.id_brs+'file:' + data.filename];
 
                     conn.query(sql, sqlValues, (err) => {
-                        conn.release();
 
                         if (err) {
                             console.log(err.sqlMessage)
@@ -213,6 +213,7 @@ router.put('/addToBRS', passport.authenticate('jwt', { session: false }), (reque
                         }
                     })
                 };
+                conn.release();
                 return response.status(200).json(result)
             }
         });
@@ -282,10 +283,11 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
 router.get('/find', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let data = request.query;
-    let sql = `SELECT s.id id_sol, s.id_formation, s.attributaire, s.lieu_execution, s.id_dateIcop, s.dateValidationDT, 
+    let sql = `SELECT s.id id_sol, sh.etat, sh.date_etat, s.id_formation, s.attributaire, s.lieu_execution, s.id_dateIcop, s.dateValidationDT, 
         DATE_FORMAT(s.dateMailOF, '%Y-%m-%d') dateMailOF, DATE_FORMAT(s.dateRespOF, '%Y-%m-%d') dateRespOF
         FROM sollicitation s 
-            WHERE s.id = ?`;
+        LEFT JOIN sollicitation_historique sh On sh.id_sol = s.id
+            WHERE s.id = ? AND sh.date_etat = (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id)`;
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
@@ -336,7 +338,7 @@ router.get('/findBRS', passport.authenticate('jwt', { session: false }), (reques
         LEFT JOIN brs_compteur b ON b.id_lot = l.id AND b.id_attr = a.id
         LEFT JOIN objectif o ON o.id = c.objectif_form
         LEFT JOIN niveau n ON n.id = c.niveau_form
-        WHERE l.id = ? AND a.id = ? AND x.etat = 5
+        WHERE l.id = ? AND a.id = ? AND (x.etat = 8 OR x.etat = 7)
         GROUP BY f.id`;
 
     pool.getConnection(function (error, conn) {
@@ -447,22 +449,30 @@ router.get('/lieuExecution', passport.authenticate('jwt', { session: false }), (
 router.get('/OFValidePourBRS', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let data = request.query;
-    let sql = `SELECT x.attributaire, a.libelle
+    // let sql = `SELECT x.attributaire, a.libelle
 
-    FROM formation f
+    // FROM formation f
+    // LEFT JOIN catalogue c ON c.id = f.id_cata
+
+    // INNER JOIN (SELECT s.id_formation, s.attributaire, s.id, sh.etat FROM sollicitation s
+    //             LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id
+    //             LEFT JOIN sollicitation_etat se ON sh.etat = se.id
+    //             LEFT JOIN sollicitation_dateicop si ON si.id = s.id_dateIcop
+    //             WHERE sh.date_etat = 
+    //                 (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) 
+    //         ) x ON x.id_formation = f.id
+
+    // LEFT JOIN attributaire a ON a.id = x.attributaire
+    // WHERE id_lot = ? AND x.etat = 5
+    // GROUP BY a.id`;
+    let sql = `SELECT a.id, a.libelle FROM sollicitation s 
+    LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id 
+    LEFT JOIN formation f ON f.id = s.id_formation
     LEFT JOIN catalogue c ON c.id = f.id_cata
-
-    INNER JOIN (SELECT s.id_formation, s.attributaire, s.id, sh.etat FROM sollicitation s
-                LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id
-                LEFT JOIN sollicitation_etat se ON sh.etat = se.id
-                LEFT JOIN sollicitation_dateicop si ON si.id = s.id_dateIcop
-                WHERE sh.date_etat = 
-                    (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) 
-            ) x ON x.id_formation = f.id
-            
-    LEFT JOIN attributaire a ON a.id = x.attributaire
-    WHERE id_lot = ? AND x.etat = 5
-    GROUP BY a.id`;
+    LEFT JOIN attributaire a ON a.id = s.attributaire
+    WHERE c.id_lot = ? AND sh.etat = 8 AND sh.date_etat = 
+                        (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id)
+    GROUP BY a.id`
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;

@@ -77,10 +77,40 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
     })
 })
 
+router.put('/edit', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    // get idBRS et sols de la Sollicitation modifié
+    // update etat to 10
+    let data = request.body;
+    console.log(data)
+    let sql = `SELECT bs.id_sol FROM brs_sollicitation bs WHERE bs.id_brs = 
+    (SELECT b.id FROM brs b LEFT JOIN brs_sollicitation bs ON bs.id_brs = b.id WHERE bs.id_sol = ?)
+    AND bs.id_sol != ?`;
+    let sqlValues = [data.n_brs, data.filename, data.id_lot, data.id_attributaire];
+
+    // pool.getConnection(function (error, conn) {
+    //     if (error) throw err;
+
+    //     conn.query(sql, sqlValues, (err, result) => {
+
+    //         if (err) {
+    //             console.log(err.sqlMessage)
+    //             return response.status(500).json({
+    //                 err: 'true',
+    //                 error: err.message,
+    //                 errno: err.errno,
+    //                 sql: err.sql,
+    //             });
+    //         } else response.status(200).json(result)
+
+    //     })
+    // })
+})
+
 router.put('/createFile', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let data = request.body;
-    
+
     response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     response.setHeader('Content-Disposition', 'attachment; filename=' + data.filename);
 
