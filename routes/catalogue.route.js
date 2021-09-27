@@ -3,24 +3,24 @@ const passport = require('passport');
 const router = express.Router();
 const pool = require('../config/db.config');
 
+// catalogue/findAll -> Toutes les formations
 router.get('/findAll', passport.authenticate('jwt', { session: false }), (request, response) => {
-    // Modifier catalogue_attributaire_adresse
+
     let sql = `SELECT c.id, c.id_lot, c.id_lot lot, c.n_Article, 
         c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
         c.formacode, c.niveau_form, c.objectif_form, 
         c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB,
-        GROUP_CONCAT(CONCAT(c_of_adr.id_adresse,':',a.adresse, ' - ', v_adresse.libelle) SEPARATOR '|')  as adresse,
+        GROUP_CONCAT(CONCAT(catc_adr.id_adresse,':',a.adresse, ' - ', v.libelle) SEPARATOR '|')  as adresse,
         GROUP_CONCAT(CONCAT(v.id, ':', v.libelle) SEPARATOR ' | ') commune
     FROM catalogue c 
         LEFT JOIN lot l ON l.id = c.id_lot
         LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
         LEFT JOIN catalogue_attributaire_commune catc ON catc.id_cata_attr = c_of.id
         LEFT JOIN ville v ON v.id = catc.id_commune
-        LEFT JOIN catalogue_attributaire_adresse c_of_adr ON c_of_adr.id_catalogue_attributaire = c_of.id 
+        LEFT JOIN catalogue_attributaire_commune_adresse catc_adr ON catc_adr.id_catalogue_attributaire_commune = catc.id 
     
-        LEFT JOIN adresse a ON a.id = c_of_adr.id_adresse 
+        LEFT JOIN adresse a ON a.id = catc_adr.id_adresse 
         LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
-        LEFT JOIN ville v_adresse ON v_adresse.id = a.commune 
     
     GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite `;
 
@@ -44,9 +44,39 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
 
         });
     });
-
 })
 
+// catalogue/find?data.field=? -> Toutes les formations selon le lot
+router.get('/find', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    const data = request.query;
+    let sql = `SELECT c.*, c.intitule_form_marche intitule, cc.nb FROM catalogue c 
+    LEFT JOIN catalogue_compteur cc ON cc.id_cata = c.id
+    WHERE ${data.field} = ?`;
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+        conn.query(sql, [data.data], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: "true",
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            }
+            else {
+                response.status(200).json(result);
+            }
+
+        });
+    });
+})
+
+// catalogue/update -> Met à jours le catalogue
 router.put('/update', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let sql = `UPDATE catalogue SET 
@@ -93,6 +123,7 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
 
 })
 
+// catalogue/create -> Ajoute une formation au catalogue
 router.put('/create', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let sqlValues = [];
@@ -132,6 +163,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
 
 })
 
+// catalogue/delete -> Supprime une formation au catalogue
 router.put('/delete', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let sql = 'DELETE FROM catalogue WHERE id = ?';
@@ -159,6 +191,7 @@ router.put('/delete', passport.authenticate('jwt', { session: false }), (request
     });
 })
 
+// catalogue/of -> Informations sur les attributaires de la formation donnée
 router.get('/of', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     const data = request.query;
@@ -194,6 +227,7 @@ router.get('/of', passport.authenticate('jwt', { session: false }), (request, re
     });
 })
 
+// catalogue/delete_of -> Supprime un attributaire
 router.put('/delete_of', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let data = request.body;
@@ -218,6 +252,7 @@ router.put('/delete_of', passport.authenticate('jwt', { session: false }), (requ
 
 })
 
+// catalogue/delete_of -> Ajoute un attributaire à la foramtion donnée
 router.put('/add_of', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let data = request.body;
@@ -241,6 +276,7 @@ router.put('/add_of', passport.authenticate('jwt', { session: false }), (request
 
 })
 
+// catalogue/upadte_of -> MAJ l'attributaire
 router.put('/update_of', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let sql = `UPDATE catalogue_attributaire SET priorite = ? WHERE id = ?`;
@@ -266,6 +302,7 @@ router.put('/update_of', passport.authenticate('jwt', { session: false }), (requ
 
 })
 
+// catalogue/delete_of -> Ajoute une commune à l'attributaire
 router.put('/add_commune_of', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let sql = `INSERT INTO catalogue_attributaire_commune (id_cata_attr, id_commune) VALUES (?,?)`;
@@ -290,6 +327,8 @@ router.put('/add_commune_of', passport.authenticate('jwt', { session: false }), 
     });
 
 })
+
+// catalogue/delete_of -> Supprime une commune à l'attributaire
 router.put('/delete_commune_of', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     let sql = `DELETE FROM catalogue_attributaire_commune WHERE id_cata_attr = ? AND id_commune = ?`;
@@ -314,5 +353,33 @@ router.put('/delete_commune_of', passport.authenticate('jwt', { session: false }
     });
 
 })
+
+
+router.get('/findCommune', passport.authenticate('jwt', { session: false }), (request, response) => {
+    let sql = `SELECT v.* FROM ville v 
+        LEFT JOIN catalogue_attributaire_commune cac ON cac.id_commune = v.id
+        LEFT JOIN catalogue_attributaire ca ON ca.id = cac.id_cata_attr
+        WHERE ca.id_cata = ? GROUP BY v.id`;
+
+    const data = request.query;
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+        conn.query(sql, [data.id_cata], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else response.status(200).json(result);
+        });
+    });
+})
+
 
 module.exports = router;

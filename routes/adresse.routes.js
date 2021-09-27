@@ -49,15 +49,16 @@ router.get('/findOuter', passport.authenticate('jwt', { session: false }), (requ
     let sqlValues = [];
     let sql = `SELECT a.id, a.adresse, v.libelle commune
         FROM adresse a 
-        LEFT JOIN catalogue_attributaire_adresse ac ON ac.id_adresse = a.id
+        LEFT JOIN catalogue_attributaire_commune_adresse ac ON ac.id_adresse = a.id
         LEFT JOIN ville v ON v.id = a.commune WHERE a.id NOT IN (
             SELECT a.id
                 FROM adresse a
-                LEFT JOIN catalogue_attributaire_adresse ac ON ac.id_adresse = a.id 
+                LEFT JOIN catalogue_attributaire_commune_adresse ac ON ac.id_adresse = a.id 
                 WHERE ac.id_catalogue_attributaire=? GROUP BY a.id
         )`;
 
     const data = request.query;
+    console.log(data)
     sqlValues.push(data.id_catalogue_attributaire);
 
     Object.entries(data).filter(([k, v]) => k !== 'id_catalogue_attributaire').map(([k, v], i) => {
@@ -74,7 +75,7 @@ router.get('/findOuter', passport.authenticate('jwt', { session: false }), (requ
 
             if (err) {
                 console.log(err.sqlMessage)
-                return resp.status(500).json({
+                return response.status(500).json({
                     err: "true",
                     error: err.message,
                     errno: err.errno,

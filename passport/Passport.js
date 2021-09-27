@@ -48,7 +48,7 @@ passport.use(
   new JWTStrategy(
     {
       jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
-      secretOrKey: 'coucou',
+      secretOrKey: 'appli_AFC',
     },
     function (jwtPayload, done) {
       return done(null, jwtPayload);

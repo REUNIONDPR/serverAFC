@@ -87,5 +87,67 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
 
 });
 
+router.put('/createOrUpdate', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    const data = request.body;
+    let sql = '';
+    let fields = Object.keys(data).filter((k) => k !== 'table' && k !== 'id')
+    let sqlValues = fields.map((v) => data[v]);
+
+    if(data.id === ''){
+        sql = `INSERT INTO ${data.table} (${fields}) VALUES (${fields.map((v) => '?')}) `
+    }else{
+        sql = `UPDATE ${data.table} SET ${fields.map((v) => v+'=?').join(',')} WHERE id=?`;
+        sqlValues.push(data.id)
+    }
+    
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+    
+        conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
+    
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            }else{
+                response.status(200).json(result);
+            }
+        });
+    });
+
+});
+
+router.put('/delete', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    const data = request.body;
+    let sql = `DELETE FROM ${data.table} WHERE id = ?`;
+        
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+    
+        conn.query(sql, [data.id], (err, result) => {
+            conn.release();
+    
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            }else{
+                response.status(200).json(result);
+            }
+        });
+    });
+
+});
 
 module.exports = router;

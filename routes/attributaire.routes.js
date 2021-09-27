@@ -42,20 +42,19 @@ router.put('/addAdresse', passport.authenticate('jwt', { session: false }), (req
 
 router.put('/deleteAdresse', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sql = 'DELETE FROM catalogue_attributaire_adresse ';
+    let sql = `DELETE a FROM catalogue_attributaire_commune_adresse a 
+        LEFT JOIN catalogue_attributaire_commune b ON b.id = a.id_catalogue_attributaire_commune
+        WHERE b.id_cata_attr = ? AND a.id_adresse = ?`;
     let sqlValues = [];
     let data = request.body;
 
-    Object.entries(data).map(([k, v], i) => {
-        i === 0 ? sql += ' WHERE ' : sql += ' AND ';
-        sql += k + '=?';
-        sqlValues.push(v);
-    })
+//     SELECT * FROM catalogue_attributaire_commune a
+// LEFT JOIN catalogue_attributaire_commune_adresse b ON b.id_catalogue_attributaire_commune = a.id WHERE a.id_cata_attr = 27 AND b.id_adresse = 149
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         const data = request.body;
-        conn.query(sql, sqlValues, (err, result) => {
+        conn.query(sql, [data.id_cata_attr, data.id_adresse], (err, result) => {
             conn.release();
 
             if (err) {
