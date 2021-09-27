@@ -21,7 +21,7 @@ router.post('/logUser', function(req, res, next){
         }
         if(!user) return res.status(400).json({flash: info.message});
         req.user = user
-        const token = jwt.sign(JSON.stringify(user), 'coucou');
+        const token = jwt.sign(JSON.stringify(user), 'appli_AFC');
         return res.json({user, token, flash: 'Utilisateur Connecté '});
     })(req, res);
 })
