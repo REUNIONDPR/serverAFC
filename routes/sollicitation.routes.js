@@ -198,7 +198,7 @@ router.put('/addToBRS', passport.authenticate('jwt', { session: false }), (reque
                 for (let i = 0; i < data.sollicitation.length; i++) {
 
                     sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
-                    sqlValues = [data.sollicitation[i], 9, data.dateTime, 'brs:'+date.id_brs+'file:' + data.filename];
+                    sqlValues = [data.sollicitation[i], 9, data.dateTime, 'brs:'+data.id_brs+'file:' + data.filename];
 
                     conn.query(sql, sqlValues, (err) => {
 
@@ -312,7 +312,7 @@ router.get('/find', passport.authenticate('jwt', { session: false }), (request, 
 })
 
 router.get('/findBRS', passport.authenticate('jwt', { session: false }), (request, response) => {
-
+    // GET données pour ensuite créer un BRS
     let data = request.query;
     // Envoi id_sol pour aller prendre la suivante (0 si pas d'id)
 
