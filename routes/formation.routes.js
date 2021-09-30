@@ -17,13 +17,14 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
     let value = '(' + fieds.map((v) => '?').join(',') + ')';
 
     let sql = `INSERT INTO formation ${field} VALUES ${value}`;
-    console.log(data)
+
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         const data = request.body;
         conn.query(sql, sqlValues, (err, result) => {
 
             if (err) {
+                conn.release();
                 console.log(err.sqlMessage)
                 return response.status(500).json({
                     err: 'true',
@@ -71,6 +72,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                     conn.query(sqlCancel, sqlValuesCancel, (err) => {
 
                         if (err) {
+                            conn.release();
                             console.log(err.sqlMessage)
                             return response.status(500).json({
                                 err: 'true',
@@ -79,6 +81,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                                 sql: err.sql,
                             });
                         } else conn.query(sqlCancelSol, sqlValuesCancelSol, (err) => {
+                            conn.release();
                             if (err) {
                                 console.log(err.sqlMessage)
                                 return response.status(500).json({
@@ -328,6 +331,67 @@ router.put('/historique', passport.authenticate('jwt', { session: false }), (req
                     sql: err.sql,
                 });
             } else {
+                response.status(200).json(result);
+            }
+        });
+    });
+
+})
+
+// Enregistre le numéro de conventionnement
+router.put('/conventionnement', passport.authenticate('jwt', { session: false }), (request, response) => {
+    let data = request.body;
+    let sql = 'UPDATE formation SET nConv = ?, date_nConv = ? WHERE id = ?';
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+        conn.query(sql, [data.nConv, data.date_nConv, data.id_formation], (err, result) => {
+
+            if (err) {
+                conn.release();
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+
+                const jsonResult = JSON.parse(JSON.stringify(result));
+
+                sql = `UPDATE sollicitation SET date_nConv = ? WHERE id = ?`;
+                sqlValues = [data.date_nConv, data.id_sol];
+
+                conn.query(sql, sqlValues, (err) => {
+
+                    if (err) {
+                        console.log(err.sqlMessage)
+                        return response.status(201).json({
+                            err: 'true',
+                            error: err.message,
+                            errno: err.errno,
+                            sql: err.sql,
+                        });
+                    } else {
+                        // Nouvel entrée pour l'historique de la sollicitation
+                        sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
+                        sqlValues = [data.id_sol, 12, data.date_nConv, data.user + ' : ' + data.nConv]
+
+                        conn.query(sql, sqlValues, (err) => {
+
+                            if (err) {
+                                console.log(err.sqlMessage)
+                                return response.status(201).json({
+                                    err: 'true',
+                                    error: err.message,
+                                    errno: err.errno,
+                                    sql: err.sql,
+                                });
+                            }
+                        })
+                    }
+                })
                 response.status(200).json(result);
             }
         });

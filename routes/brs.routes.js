@@ -40,6 +40,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                 conn.query(sql, sqlValues, (err, result_histo) => {
 
                     if (err) {
+                        conn.release();
                         console.log(err.sqlMessage)
                         return response.status(500).json({
                             err: 'true',
@@ -51,10 +52,10 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
 
                         let sqlCompteur = '';
                         sqlCompteur = data.nb_brs === 1
-                            ? `INSERT INTO brs_compteur (nb, id_lot, id_attr) VALUES (?,?,?)`
-                            : `UPDATE brs_compteur SET nb = ? WHERE id_lot = ? AND id_attr = ?`;
+                            ? `INSERT INTO brs_compteur (nb, id_lot) VALUES (?,?)`
+                            : `UPDATE brs_compteur SET nb = ? WHERE id_lot = ?`;
 
-                        let sqlValuesCompteur = [data.nb_brs, data.id_lot, data.id_attributaire]
+                        let sqlValuesCompteur = [data.nb_brs, data.id_lot]
 
                         conn.query(sqlCompteur, sqlValuesCompteur, (err, result_compteur) => {
                             conn.release();
@@ -81,29 +82,29 @@ router.put('/edit', passport.authenticate('jwt', { session: false }), (request, 
     // get idBRS et sols de la Sollicitation modifié
     // update etat to 10
     let data = request.body;
-    console.log(data)
+    
     let sql = `SELECT bs.id_sol FROM brs_sollicitation bs WHERE bs.id_brs = 
     (SELECT b.id FROM brs b LEFT JOIN brs_sollicitation bs ON bs.id_brs = b.id WHERE bs.id_sol = ?)
     AND bs.id_sol != ?`;
-    let sqlValues = [data.n_brs, data.filename, data.id_lot, data.id_attributaire];
+    let sqlValues = [data.id_sol, data.id_sol];
 
-    // pool.getConnection(function (error, conn) {
-    //     if (error) throw err;
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
 
-    //     conn.query(sql, sqlValues, (err, result) => {
+        conn.query(sql, sqlValues, (err, result) => {
 
-    //         if (err) {
-    //             console.log(err.sqlMessage)
-    //             return response.status(500).json({
-    //                 err: 'true',
-    //                 error: err.message,
-    //                 errno: err.errno,
-    //                 sql: err.sql,
-    //             });
-    //         } else response.status(200).json(result)
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else response.status(200).json(result)
 
-    //     })
-    // })
+        })
+    })
 })
 
 router.put('/createFile', passport.authenticate('jwt', { session: false }), (request, response) => {
@@ -135,7 +136,6 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     LEFT JOIN attributaire a ON a.id = b.id_attributaire`;
 
     pool.getConnection(function (error, conn) {
-        conn.release();
         if (error) throw err;
 
         conn.query(sql, [], (err, result) => {
@@ -174,13 +174,12 @@ router.put('/downlaod', passport.authenticate('jwt', { session: false }), (reque
     //     }
     // });
 
-    console.log(data)
 
 })
 
 router.get('/findSollicitation', passport.authenticate('jwt', { session: false }), (request, response) => {
     const data = request.query
-    const sql = `SELECT f.id id_formation, f.idgasi, f.dispositif, f.n_Article, f.nb_place, f.vague, f.date_entree_demandee, f.date_fin, f.nConv, 
+    const sql = `SELECT s.id id_sol, f.id id_formation, f.idgasi, f.dispositif, f.n_Article, f.nb_place, f.vague, f.date_entree_demandee, f.date_fin, f.nConv, 
         c.intitule_form_marche, sh.date_etat, se.etat
         FROM brs_sollicitation bs 
         LEFT JOIN sollicitation s ON s.id = bs.id_sol
