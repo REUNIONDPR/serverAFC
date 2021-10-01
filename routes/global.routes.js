@@ -150,4 +150,15 @@ router.put('/delete', passport.authenticate('jwt', { session: false }), (request
 
 });
 
+
+router.put('/addCommentaire', passport.authenticate('jwt', { session: false }), (request, response) => {
+    const data = request.body;
+    console.log(data)
+})
+router.get('/commentaire', passport.authenticate('jwt', { session: false }), (request, response) => {
+    const data = request.query;
+    console.log(data)
+})
+
+
 module.exports = router;

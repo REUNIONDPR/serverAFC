@@ -61,14 +61,6 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                     let sqlCancel = 'UPDATE formation SET etat = 20 WHERE id = ?';
                     let sqlValuesCancel = [data.createNewFormationFromThis.idChange];
 
-                    let sqlCancelSol = 'INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)';
-                    let sqlValuesCancelSol = [
-                        data.id_sol,
-                        20,
-                        data.date_creation,
-                        'Modification ' + data.createNewFormationFromThis.fieldChange +
-                        ' par ' + data.createNewFormationFromThis.userChange];
-
                     conn.query(sqlCancel, sqlValuesCancel, (err) => {
 
                         if (err) {
@@ -80,18 +72,28 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                                 errno: err.errno,
                                 sql: err.sql,
                             });
-                        } else conn.query(sqlCancelSol, sqlValuesCancelSol, (err) => {
-                            conn.release();
-                            if (err) {
-                                console.log(err.sqlMessage)
-                                return response.status(500).json({
-                                    err: 'true',
-                                    error: err.message,
-                                    errno: err.errno,
-                                    sql: err.sql,
-                                });
-                            }
-                        })
+                        } else if (data.id_sol) {
+                            let sqlCancelSol = 'INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)';
+                            let sqlValuesCancelSol = [
+                                data.id_sol,
+                                20,
+                                data.date_creation,
+                                'Modification ' + data.createNewFormationFromThis.fieldChange +
+                                ' par ' + data.createNewFormationFromThis.userChange];
+
+                            conn.query(sqlCancelSol, sqlValuesCancelSol, (err) => {
+                                conn.release();
+                                if (err) {
+                                    console.log(err.sqlMessage)
+                                    return response.status(500).json({
+                                        err: 'true',
+                                        error: err.message,
+                                        errno: err.errno,
+                                        sql: err.sql,
+                                    });
+                                }
+                            })
+                        }
 
                     });
                 }
@@ -132,6 +134,7 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
     let data = request.body;
     let fieds = [
         'agence_ref',
+        'n_Article',
         'dispositif',
         'nb_place',
         'vague',
@@ -265,7 +268,15 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     f.nb_place, f.date_creation, f.date_entree_demandee, f.date_entree_fixe, f.date_DDINT1, f.date_DDINT2, f.date_DFINT1, f.date_DFINT2, 
     f.heure_centre, f.heure_entreprise, f.date_fin, f.heure_max_session, f.adresse, f.vague, f.nConv, f.date_nconv,
     v.id id_commune, v.libelle commune, s.id id_sol, s.attributaire id_attributaire, 
-    sh.date_etat, COALESCE(sh.etat,0) etat, COALESCE(se.etat, "En cours d'élaboration") etat_libelle, 
+    (CASE 
+    	WHEN s.id is NULL THEN CASE WHEN f.etat = 1 THEN 0 ELSE f.etat END
+        ELSE sh.etat
+    END) etat,
+    (CASE 
+    	WHEN s.id is NULL THEN CASE WHEN f.etat = 1 THEN "En cours d'élaboration" ELSE "Annulé" END
+        ELSE se.etat
+    END) etat_libelle,
+    sh.date_etat,
     u.fonction userFct, COALESCE(cc.nb,0) nbarticle
         FROM formation f
         LEFT JOIN ape a ON a.id = f.agence_ref

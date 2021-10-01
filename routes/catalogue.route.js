@@ -215,6 +215,29 @@ router.put('/delete', passport.authenticate('jwt', { session: false }), (request
     });
 })
 
+router.put('/updateCompteur', passport.authenticate('jwt', { session: false }), (request, response) => {
+    const data = request.body;
+    const sql = 'UPDATE catalogue_compteur SET nb=? WHERE id_cata = (SELECT id FROM catalogue WHERE n_Article = ?)'
+    
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+        conn.query(sql, [data.nb, data.n_Article], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else response.status(200).json(result);
+        });
+    });
+
+})
+
 // catalogue/of -> Informations sur les attributaires de la formation donnée
 router.get('/of', passport.authenticate('jwt', { session: false }), (request, response) => {
 

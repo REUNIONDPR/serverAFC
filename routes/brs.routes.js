@@ -13,7 +13,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
     // MaJ brs_compteur
 
     let data = request.body;
-    
+
     let sql = 'INSERT INTO brs (n_brs, filename, id_lot, id_attributaire) VALUES (?,?,?,?)';
     let sqlValues = [data.n_brs, data.filename, data.id_lot, data.id_attributaire];
 
@@ -50,26 +50,47 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                         });
                     } else {
 
-                        let sqlCompteur = '';
-                        sqlCompteur = data.nb_brs === 1
-                            ? `INSERT INTO brs_compteur (nb, id_lot) VALUES (?,?)`
-                            : `UPDATE brs_compteur SET nb = ? WHERE id_lot = ?`;
+                        if (data.replace_brs === 0) {
+                            // Met à jour le compteur de BRS
+                            let sqlCompteur = '';
+                            sqlCompteur = data.nb_brs === 1
+                                ? `INSERT INTO brs_compteur (nb, id_lot) VALUES (?,?)`
+                                : `UPDATE brs_compteur SET nb = ? WHERE id_lot = ?`;
 
-                        let sqlValuesCompteur = [data.nb_brs, data.id_lot]
+                            let sqlValuesCompteur = [data.nb_brs, data.id_lot]
 
-                        conn.query(sqlCompteur, sqlValuesCompteur, (err, result_compteur) => {
-                            conn.release();
+                            conn.query(sqlCompteur, sqlValuesCompteur, (err, result_compteur) => {
+                                conn.release();
 
-                            if (err) {
-                                console.log(err.sqlMessage)
-                                return response.status(500).json({
-                                    err: 'true',
-                                    error: err.message,
-                                    errno: err.errno,
-                                    sql: err.sql,
-                                });
-                            } else response.status(200).json(result)
-                        });
+                                if (err) {
+                                    console.log(err.sqlMessage)
+                                    return response.status(500).json({
+                                        err: 'true',
+                                        error: err.message,
+                                        errno: err.errno,
+                                        sql: err.sql,
+                                    });
+                                } else response.status(200).json(result)
+                            });
+                        }else{
+                            // Le nouveau BRS viens remplacer un autre
+                            let sqlUpdate = 'UPDATE brs SET nouveauBRS = ? WHERE id = ?'
+                            let sqlValuesUpdate = [jsonResult.insertId, data.replace_brs]
+
+                            conn.query(sqlUpdate, sqlValuesUpdate, (err, result_compteur) => {
+                                conn.release();
+
+                                if (err) {
+                                    console.log(err.sqlMessage)
+                                    return response.status(500).json({
+                                        err: 'true',
+                                        error: err.message,
+                                        errno: err.errno,
+                                        sql: err.sql,
+                                    });
+                                } else response.status(200).json(result)
+                            });
+                        }
                     }
                 });
             }
@@ -79,20 +100,24 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
 
 router.put('/edit', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    // get idBRS et sols de la Sollicitation modifié
-    // update etat to 10
+    // Recupere l'ensemble des sollicitations du BRS
+    // Etat 10 sollicitation modifie
+    // Etat 11 les autres 
     let data = request.body;
-    
-    let sql = `SELECT bs.id_sol FROM brs_sollicitation bs WHERE bs.id_brs = 
-    (SELECT b.id FROM brs b LEFT JOIN brs_sollicitation bs ON bs.id_brs = b.id WHERE bs.id_sol = ?)
-    AND bs.id_sol != ?`;
-    let sqlValues = [data.id_sol, data.id_sol];
+
+    let sql = `SELECT bs.id_brs, bs.id_sol, f.id id_formation FROM brs_sollicitation bs 
+    LEFT JOIN sollicitation s ON s.id = bs.id_sol
+    LEFT JOIN formation f ON s.id_formation = f.id
+    WHERE bs.id_brs = 
+    (SELECT b.id FROM brs b LEFT JOIN brs_sollicitation bs ON bs.id_brs = b.id WHERE bs.id_sol = ?)`;
+
+    let sqlValues = [data.id_sol];
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
 
         conn.query(sql, sqlValues, (err, result) => {
-
+            conn.release();
             if (err) {
                 console.log(err.sqlMessage)
                 return response.status(500).json({
@@ -101,7 +126,33 @@ router.put('/edit', passport.authenticate('jwt', { session: false }), (request, 
                     errno: err.errno,
                     sql: err.sql,
                 });
-            } else response.status(200).json(result)
+            } else {
+                const jsonResult = JSON.parse(JSON.stringify(result));
+
+                sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
+
+                for (let i = 0; i < jsonResult.length; i++) {
+
+                    let information = data.information + ' initial ' + jsonResult[i].id_brs
+                    let etat = jsonResult[i].id_sol !== data.id_sol ? 10 : 11;
+                    sqlValues = [jsonResult[i].id_sol, etat, data.dateTime, information];
+
+                    conn.query(sql, sqlValues, (err, result) => {
+                        conn.release();
+                        if (err) {
+                            console.log(err.sqlMessage)
+                            return response.status(500).json({
+                                err: 'true',
+                                error: err.message,
+                                errno: err.errno,
+                                sql: err.sql,
+                            });
+                        }
+                    })
+
+                }
+                response.status(200).json(result)
+            }
 
         })
     })
@@ -169,7 +220,7 @@ router.put('/downlaod', passport.authenticate('jwt', { session: false }), (reque
     //             if( err ) {
     //                 console.log('something went wrong');
     //             }
-    
+
     //         }); // pass in the path to the newly created file
     //     }
     // });

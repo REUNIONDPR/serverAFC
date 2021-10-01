@@ -87,7 +87,7 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
             } else {
 
                 let sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
-                sqlValues = [data.id_sol, data.etat, data.dateTime, data.reason];
+                sqlValues = [data.id_sol, data.etat, data.dateTime, data.information];
 
                 conn.query(sql, sqlValues, (err) => {
                     conn.release();
@@ -139,7 +139,7 @@ router.put('/save', passport.authenticate('jwt', { session: false }), (request, 
             } else {
 
                 sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
-                sqlValues = [data.sollicitation.id_sol, data.etat, data.dateTime, data.reason];
+                sqlValues = [data.sollicitation.id_sol, data.etat, data.dateTime, data.information];
 
                 console.log(sql, sqlValues)
                 conn.query(sql, sqlValues, (err) => {
@@ -209,7 +209,7 @@ router.put('/addToBRS', passport.authenticate('jwt', { session: false }), (reque
                         }else{
                             // Nouvel entrée pour l'historique de la sollicitation
                             sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
-                            sqlValues = [data.sollicitation[i], 9, data.dateTime, 'brs:' + data.id_brs + 'file:' + data.filename];
+                            sqlValues = [data.sollicitation[i], 9, data.dateTime, 'Edition du BRS :' + data.id_brs + ' Nom :' + data.filename];
         
                             conn.query(sql, sqlValues, (err) => {
         
@@ -336,13 +336,17 @@ router.get('/findBRS', passport.authenticate('jwt', { session: false }), (reques
     u.libelle utilisateur, f.n_Article, c.intitule_form_marche, o.libelle objectif, n.libelle niveau, 
     c.formacode, x.lieu_execution, f.nb_place, f.heure_max_session, f.heure_entreprise, f.heure_centre, 
     f.date_entree_demandee, f.date_fin, x.dateIcop,
-    COALESCE(b.nb,0) nb_brs
+    COALESCE(b.nb,0) nb_brs, COALESCE(x.id_brs,0) id_brs, x.n_brs, x.filename
     
         FROM formation f
-        INNER JOIN (SELECT s.id_formation, s.attributaire, s.id id_sol, sh.etat, si.dateIcop, s.lieu_execution FROM sollicitation s
+        INNER JOIN (SELECT s.id_formation, s.attributaire, s.id id_sol, sh.etat, si.dateIcop, s.lieu_execution, bs.id_brs,
+            b.n_brs, b.filename
+             FROM sollicitation s
                     LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id
                     LEFT JOIN sollicitation_etat se ON sh.etat = se.id
                     LEFT JOIN sollicitation_dateicop si ON si.id = s.id_dateIcop
+                    LEFT JOIN brs_sollicitation bs ON bs.id_sol = s.id
+                    LEFT JOIN brs b ON b.id = bs.id_brs
                     WHERE sh.date_etat = 
                         (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) 
                 ) x ON x.id_formation = f.id
@@ -353,7 +357,7 @@ router.get('/findBRS', passport.authenticate('jwt', { session: false }), (reques
         LEFT JOIN brs_compteur b ON b.id_lot = l.id
         LEFT JOIN objectif o ON o.id = c.objectif_form
         LEFT JOIN niveau n ON n.id = c.niveau_form
-        WHERE l.id = ? AND a.id = ? AND (x.etat = 8 OR x.etat = 7)
+        WHERE l.id = ? AND a.id = ? AND (x.etat = 8 OR x.etat = 7 OR x.etat = 10 OR x.etat = 11)
         GROUP BY f.id`;
 
     pool.getConnection(function (error, conn) {
@@ -486,7 +490,7 @@ router.get('/OFValidePourBRS', passport.authenticate('jwt', { session: false }),
     LEFT JOIN formation f ON f.id = s.id_formation
     LEFT JOIN catalogue c ON c.id = f.id_cata
     LEFT JOIN attributaire a ON a.id = s.attributaire
-    WHERE c.id_lot = ? AND sh.etat = 8 AND sh.date_etat = 
+    WHERE c.id_lot = ? AND (sh.etat = 8 OR sh.etat = 10 OR sh.etat = 11) AND sh.date_etat = 
                         (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id)
     GROUP BY a.id`
 
@@ -515,7 +519,7 @@ router.get('/updateEtat', passport.authenticate('jwt', { session: false }), (req
 
     let data = request.query;
     let sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
-    let sqlValues = [data.sollicitation.id_sol, data.etat, data.dateTime, data.reason];
+    let sqlValues = [data.sollicitation.id_sol, data.etat, data.dateTime, data.information];
 
     // pool.getConnection(function (error, conn) {
     //     if (error) throw err;
