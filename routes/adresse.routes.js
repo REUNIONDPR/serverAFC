@@ -46,31 +46,24 @@ router.get('/find', passport.authenticate('jwt', { session: false }), (request, 
 
 router.get('/findOuter', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sqlValues = [];
     let sql = `SELECT a.id, a.adresse, v.libelle commune
         FROM adresse a 
         LEFT JOIN catalogue_attributaire_commune_adresse ac ON ac.id_adresse = a.id
-        LEFT JOIN ville v ON v.id = a.commune WHERE a.id NOT IN (
+        LEFT JOIN ville v ON v.id = a.commune 
+        
+        WHERE a.id NOT IN (
             SELECT a.id
                 FROM adresse a
-                LEFT JOIN catalogue_attributaire_commune_adresse ac ON ac.id_adresse = a.id 
-                WHERE ac.id_catalogue_attributaire=? GROUP BY a.id
-        )`;
+                LEFT JOIN catalogue_attributaire_commune_adresse ac ON ac.id_adresse = a.id
+                LEFT JOIN catalogue_attributaire_commune ca ON ca.id = ac.id_catalogue_attributaire_commune
+                WHERE ca.id_cata_attr=? GROUP BY a.id
+        ) AND v.id = ? GROUP BY a.id`;
 
     const data = request.query;
-    console.log(data)
-    sqlValues.push(data.id_catalogue_attributaire);
-
-    Object.entries(data).filter(([k, v]) => k !== 'id_catalogue_attributaire').map(([k, v], i) => {
-        sql += ' AND ' + k + '=?';
-        sqlValues.push(v);
-    })
-
-    sql += ' GROUP BY a.id';
-
+    
     pool.getConnection(function (error, conn) {
         if (error) throw err;
-        conn.query(sql, sqlValues, (err, result) => {
+        conn.query(sql, [data.id_of_cata, data.commune], (err, result) => {
             conn.release();
 
             if (err) {
@@ -90,6 +83,7 @@ router.get('/findOuter', passport.authenticate('jwt', { session: false }), (requ
     });
 
 })
+
 
 router.get('/findOuterCommune', passport.authenticate('jwt', { session: false }), (request, response) => {
 

@@ -150,4 +150,83 @@ router.put('/delete', passport.authenticate('jwt', { session: false }), (request
 
 });
 
+
+router.put('/addCommentaire', passport.authenticate('jwt', { session: false }), (request, response) => {
+    const data = request.body;
+    const sql = 'INSERT INTO formation_commentaire (n_Article, idgasi, commentaire, date) VALUES (?,?,?,?)';
+    const sqlValues = [data.n_Article, data.idgasi, data.commentaire, data.date];
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+    
+        conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
+    
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            }else{
+                response.status(200).json(result);
+            }
+        });
+    });
+})
+router.get('/commentaire', passport.authenticate('jwt', { session: false }), (request, response) => {
+    const data = request.query;
+    const sql = `SELECT fc.id, fc.commentaire, fc.idgasi, u.libelle user, fc.date FROM formation_commentaire fc
+        LEFT JOIN user u ON u.id = fc.idgasi WHERE n_Article = ?`;
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+    
+        conn.query(sql, [data.n_Article], (err, result) => {
+            conn.release();
+    
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            }else{
+                response.status(200).json(result);
+            }
+        });
+    });
+
+})
+router.put('/deleteCommentaire', passport.authenticate('jwt', { session: false }), (request, response) => {
+    const data = request.body;
+    const sql = 'DELETE FROM formation_commentaire WHERE id = ?';
+    const sqlValues = [data.id];
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+    
+        conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
+    
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            }else{
+                response.status(200).json(result);
+            }
+        });
+    });
+})
+
+
 module.exports = router;

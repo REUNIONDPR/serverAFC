@@ -5,21 +5,13 @@ const pool = require('../config/db.config');
 
 router.put('/addAdresse', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sql = 'INSERT INTO catalogue_attributaire_adresse ';
-    let sqlValues = [];
+    let sql = 'INSERT INTO catalogue_attributaire_commune_adresse (id_catalogue_attributaire_commune, id_adresse) VALUES (?,?)';
     let data = request.body;
 
-    let field = '(' + Object.keys(data).filter((v) => v !== 'id').map((v) => '?').join(',') + ')';
-    sql += '(' + Object.keys(data).filter((v) => v !== 'id').join(',') + ')';
-    sql += ' VALUES ';
-    sql += field;
-
-    sqlValues = Object.entries(data).filter(([k, v]) => k !== 'id').map(([k, v]) => v);
-    console.log(sql, sqlValues)
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         const data = request.body;
-        conn.query(sql, sqlValues, (err, result) => {
+        conn.query(sql, [data.id_of_cata_commune, data.id_adresse], (err, result) => {
             conn.release();
 
             if (err) {
@@ -70,6 +62,40 @@ router.put('/deleteAdresse', passport.authenticate('jwt', { session: false }), (
                 io.emit("updateAdresse", request.body);
                 response.status(200).json({});
             }
+        });
+    });
+
+})
+
+router.get('/findCommune', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    let sqlValues = [];
+    let sql = `SELECT v.id, v.libelle 
+        FROM ville v 
+        LEFT JOIN catalogue_attributaire_commune cac ON cac.id_commune = v.id 
+        WHERE id_cata_attr = ?`;
+
+    const data = request.query;
+    sqlValues.push(data.id_of_cata);
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+        conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: "true",
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            }
+            else {
+                response.status(200).json(result);
+            }
+
         });
     });
 
