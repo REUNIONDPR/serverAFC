@@ -267,7 +267,7 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     let sql = `SELECT f.id, c.id_lot id_lot, c.intitule_form_marche intitule, f.id_cata, f.agence_ref, a.libelle_ape agence_ref_libelle, f.dispositif, f.n_Article,
     f.nb_place, f.date_creation, f.date_entree_demandee, f.date_entree_fixe, f.date_DDINT1, f.date_DDINT2, f.date_DFINT1, f.date_DFINT2, 
     f.heure_centre, f.heure_entreprise, f.date_fin, f.heure_max_session, f.adresse, f.vague, f.nConv, f.date_nconv,
-    v.id id_commune, v.libelle commune, s.id id_sol, s.attributaire id_attributaire, 
+    v.id id_commune, v.libelle commune, s.id id_sol, s.attributaire id_attributaire, s.dateMailOF, s.dateRespOF,
     (CASE 
     	WHEN s.id is NULL THEN CASE WHEN f.etat = 1 THEN 0 ELSE f.etat END
         ELSE sh.etat

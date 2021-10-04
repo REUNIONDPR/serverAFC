@@ -21,6 +21,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
         if (error) throw err;
 
         conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
 
             if (err) {
                 console.log(err.sqlMessage)
@@ -38,9 +39,9 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                 sqlValues = [jsonResult.insertId, 1, data.dateTime]
 
                 conn.query(sql, sqlValues, (err, result_histo) => {
+                    conn.release();
 
                     if (err) {
-                        conn.release();
                         console.log(err.sqlMessage)
                         return response.status(500).json({
                             err: 'true',
@@ -72,7 +73,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                                     });
                                 } else response.status(200).json(result)
                             });
-                        }else{
+                        } else {
                             // Le nouveau BRS viens remplacer un autre
                             let sqlUpdate = 'UPDATE brs SET nouveauBRS = ? WHERE id = ?'
                             let sqlValuesUpdate = [jsonResult.insertId, data.replace_brs]
@@ -109,9 +110,9 @@ router.put('/edit', passport.authenticate('jwt', { session: false }), (request, 
     LEFT JOIN sollicitation s ON s.id = bs.id_sol
     LEFT JOIN formation f ON s.id_formation = f.id
     WHERE bs.id_brs = 
-    (SELECT b.id FROM brs b LEFT JOIN brs_sollicitation bs ON bs.id_brs = b.id WHERE bs.id_sol = ?)`;
+    (SELECT b.id FROM brs b LEFT JOIN brs_sollicitation bs ON bs.id_brs = b.id WHERE bs.id_sol = ? AND b.modifie_brs = ?)`;
 
-    let sqlValues = [data.id_sol];
+    let sqlValues = [data.id_sol, 0];
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
@@ -128,16 +129,13 @@ router.put('/edit', passport.authenticate('jwt', { session: false }), (request, 
                 });
             } else {
                 const jsonResult = JSON.parse(JSON.stringify(result));
+                if (jsonResult.length > 0) {
 
-                sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
+                    // MaJ brs flag modifie_brs
+                    const sqlUpdateBRS = 'UPDATE brs SET modifie_brs = ? WHERE id = ?';
+                    const sqlUpdateBRSValues = [1, jsonResult[0].id_brs];
 
-                for (let i = 0; i < jsonResult.length; i++) {
-
-                    let information = data.information + ' initial ' + jsonResult[i].id_brs
-                    let etat = jsonResult[i].id_sol !== data.id_sol ? 10 : 11;
-                    sqlValues = [jsonResult[i].id_sol, etat, data.dateTime, information];
-
-                    conn.query(sql, sqlValues, (err, result) => {
+                    conn.query(sqlUpdateBRS, sqlUpdateBRSValues, (err, result) => {
                         conn.release();
                         if (err) {
                             console.log(err.sqlMessage)
@@ -149,9 +147,36 @@ router.put('/edit', passport.authenticate('jwt', { session: false }), (request, 
                             });
                         }
                     })
+                    // MaJ historique de la sollicitation (BRS modifié)
+                    sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
 
+                    for (let i = 0; i < jsonResult.length; i++) {
+
+                        let information = data.information + ' initial ' + jsonResult[i].id_brs
+                        let etat = jsonResult[i].id_sol !== data.id_sol ? 11 : 10;
+                        sqlValues = [jsonResult[i].id_sol, etat, data.dateTime, information];
+
+                        conn.query(sql, sqlValues, (err, result) => {
+                            conn.release();
+                            if (err) {
+                                console.log(err.sqlMessage)
+                                return response.status(500).json({
+                                    err: 'true',
+                                    error: err.message,
+                                    errno: err.errno,
+                                    sql: err.sql,
+                                });
+                            }
+                        })
+
+                    }
+                    response.status(200).json(result)
+                } else {
+                    return response.status(500).json({
+                        err: 'true',
+                        error: 'error update historique sollicitation',
+                    });
                 }
-                response.status(200).json(result)
             }
 
         })
@@ -182,7 +207,9 @@ router.put('/createFile', passport.authenticate('jwt', { session: false }), (req
 
 router.get('/findAll', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    const sql = `SELECT b.filename, b.id, b.n_brs, b.id_lot, l.libelle, b.id_attributaire, a.libelle titulaire FROM brs b 
+    const sql = `SELECT b.filename, b.id, b.n_brs, b.id_lot, l.libelle, b.id_attributaire, a.libelle titulaire, 
+    COALESCE(b.modifie_brs,0) modifie_brs, COALESCE(b.nouveauBRS,0) nouveauBRS
+    FROM brs b 
     LEFT JOIN lot l ON l.id = b.id_lot 
     LEFT JOIN attributaire a ON a.id = b.id_attributaire`;
 
