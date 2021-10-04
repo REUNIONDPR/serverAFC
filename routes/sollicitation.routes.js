@@ -41,7 +41,7 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
 
                 const jsonResult = JSON.parse(JSON.stringify(result));
 
-                sqlValues = [jsonResult.insertId, 1, time, data.idgasi]
+                sqlValues = [jsonResult.insertId, 1, time, data.information]
 
                     conn.query(sql, sqlValues, (err, result) => {
                         conn.release();
@@ -68,8 +68,8 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
     // Envoi id_sol pour aller prendre la suivante (0 si pas d'id)
 
     sql = 'UPDATE sollicitation SET dateRespOF = ? WHERE id = ?'
-    sqlValues = [data.dateTime, data.id_sol];
-    console.log(sql, sqlValues)
+    sqlValues = [data.dateRespOF, data.id_sol];
+    
     pool.getConnection(function (error, conn) {
         if (error) throw err;
 
@@ -140,8 +140,7 @@ router.put('/save', passport.authenticate('jwt', { session: false }), (request, 
 
                 sql = `INSERT INTO sollicitation_historique (id_sol, etat, date_etat, information) VALUES (?,?,?,?)`;
                 sqlValues = [data.sollicitation.id_sol, data.etat, data.dateTime, data.information];
-
-                console.log(sql, sqlValues)
+                
                 conn.query(sql, sqlValues, (err) => {
                     conn.release();
 
@@ -348,7 +347,7 @@ router.get('/findBRS', passport.authenticate('jwt', { session: false }), (reques
                     LEFT JOIN brs_sollicitation bs ON bs.id_sol = s.id
                     LEFT JOIN brs b ON b.id = bs.id_brs
                     WHERE sh.date_etat = 
-                        (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) 
+                        (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) AND b.nouveauBRS is null
                 ) x ON x.id_formation = f.id
         LEFT JOIN user u ON u.id = f.idgasi
         LEFT JOIN catalogue c ON c.id = f.id_cata
