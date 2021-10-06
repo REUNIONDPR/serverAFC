@@ -153,7 +153,7 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
 
     let sql = `UPDATE formation SET ${field} WHERE id = ?`;
     sqlValues.push(data.id);
-    console.log(sqlValues)
+    
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         const data = request.body;
@@ -269,11 +269,15 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     f.heure_centre, f.heure_entreprise, f.date_fin, f.heure_max_session, f.adresse, f.vague, f.nConv, f.date_nconv,
     v.id id_commune, v.libelle commune, s.id id_sol, s.attributaire id_attributaire, s.dateMailOF, s.dateRespOF,
     (CASE 
-    	WHEN s.id is NULL THEN CASE WHEN f.etat = 1 THEN 0 ELSE f.etat END
-        ELSE sh.etat
+    	WHEN s.id is NULL THEN CASE WHEN f.etat = 1 THEN 0 ELSE f.etat END 
+        WHEN f.etat > 10 THEN f.etat 
+        ELSE sh.etat 
     END) etat,
     (CASE 
     	WHEN s.id is NULL THEN CASE WHEN f.etat = 1 THEN "En cours d'élaboration" ELSE "Annulé" END
+        WHEN f.etat = 18 THEN "Annulé OF"
+        WHEN f.etat = 19 THEN "Annulé DT"
+        WHEN f.etat = 20 THEN "Annulé et remplacée"
         ELSE se.etat
     END) etat_libelle,
     sh.date_etat,

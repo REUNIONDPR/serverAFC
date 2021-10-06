@@ -356,7 +356,7 @@ router.get('/findBRS', passport.authenticate('jwt', { session: false }), (reques
         LEFT JOIN brs_compteur b ON b.id_lot = l.id
         LEFT JOIN objectif o ON o.id = c.objectif_form
         LEFT JOIN niveau n ON n.id = c.niveau_form
-        WHERE l.id = ? AND a.id = ? AND (x.etat = 8 OR x.etat = 7 OR x.etat = 10 OR x.etat = 11)
+        WHERE l.id = ? AND a.id = ? AND (x.etat = 8 OR x.etat = 7 OR x.etat = 11)
         GROUP BY f.id`;
 
     pool.getConnection(function (error, conn) {
