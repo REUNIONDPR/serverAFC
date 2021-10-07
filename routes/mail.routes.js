@@ -3,12 +3,14 @@ const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
 const passport = require('passport');
+const fs = require('fs');
+const util = require('util');
+const path = require('path');
 
-//a tester
 const transporter =
     nodemailer.createTransport({
         host: process.env.SMTP,
-        port:23,
+        port:25,
         secure: false,
         tls: { rejectUnauthorized: false },
     }, {
@@ -25,12 +27,21 @@ transporter.verify(function (error, success) {
     }
 });
 
-router.post('/sendSollicitationOF', passport.authenticate('jwt', { session: false }), (request, response) => {
-    const data = request.body
+router.get('/sendSollicitation', passport.authenticate('jwt', { session: false }), (request, response) => {
+    const data = request.query
 
-    transporter.sendMail({
+    let templateSollicitation;
+
+    fs.readFile(path.join(__dirname,'/mail/templateSollicitation.html'), {encoding:'utf-8'}, function(err,data){
+        if(err){
+            console.log(err);
+            process.exit(1);
+        }else{
+            
+            data.replace('{{ mail_of }}', 'nicarap@hotmail.com');
+            transporter.sendMail({
         to: 'raphael.lebon@pole-emploi.fr',
-        html: `<h3>Bonjour, une nouvelle carte a été créée</h3>`,
+        html: data,
     }, (err, data) => {
         if (err) {
             console.log(err)
@@ -43,6 +54,29 @@ router.post('/sendSollicitationOF', passport.authenticate('jwt', { session: fals
             })
         }
     })
+        }
+    });
+
+
+    
+
+    // transporter.sendMail({
+    //     to: 'raphael.lebon@pole-emploi.fr',
+    //     html: data,
+    // }, (err, data) => {
+    //     if (err) {
+    //         console.log(err)
+    //         response.status(500).json({
+    //             status: 'fail'
+    //         })
+    //     } else {
+    //         response.status(201).json({
+    //             status: 'success'
+    //         })
+    //     }
+    // })
+
+
 })
 
 module.exports = router;

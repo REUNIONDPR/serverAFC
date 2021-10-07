@@ -23,7 +23,7 @@ const server = require('http').Server(app)
 const morgan = require('morgan');
 
 // Pour la production
-// app.use(express.static(path.join(__dirname, '../clientAFC/build')));
+app.use(express.static(path.join(__dirname, '../clientAFC/build')));
 
 app.use(morgan('dev'));
 app.use(bodyParser.json());
