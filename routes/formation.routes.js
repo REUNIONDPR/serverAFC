@@ -274,7 +274,14 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
         ELSE sh.etat 
     END) etat,
     (CASE 
-    	WHEN s.id is NULL THEN CASE WHEN f.etat = 1 THEN "En cours d'élaboration" ELSE "Annulé" END
+    	WHEN s.id is NULL THEN 
+            CASE 
+                WHEN f.etat = 1 THEN "En cours d'élaboration"
+                WHEN f.etat = 18 THEN "Annulé OF"
+                WHEN f.etat = 19 THEN "Annulé DT"
+                WHEN f.etat = 20 THEN "Annulé et remplacée"
+                ELSE "Annulé - Indeterminé"
+            END
         WHEN f.etat = 18 THEN "Annulé OF"
         WHEN f.etat = 19 THEN "Annulé DT"
         WHEN f.etat = 20 THEN "Annulé et remplacée"
