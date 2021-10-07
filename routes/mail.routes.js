@@ -7,9 +7,8 @@ const passport = require('passport');
 //a tester
 const transporter =
     nodemailer.createTransport({
-        // host: process.env.SMTP,
-        // port: process.env.SMTP_PORT,
-        port:443,
+        host: process.env.SMTP,
+        port:23,
         secure: false,
         tls: { rejectUnauthorized: false },
     }, {

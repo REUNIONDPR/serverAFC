@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const bodyParser = require('body-parser');
 const authRouter = require('./routes/auth.route.js');
 const userRouter = require('./routes/user.routes');
@@ -20,6 +21,9 @@ const app = express();
 const port = process.env.PORT;
 const server = require('http').Server(app)
 const morgan = require('morgan');
+
+// Pour la production
+// app.use(express.static(path.join(__dirname, '../clientAFC/build')));
 
 app.use(morgan('dev'));
 app.use(bodyParser.json());
