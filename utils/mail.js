@@ -30,7 +30,7 @@ module.exports = {
 
     sendSollicitation: function (mail_source, sollicitation, formation, callback) {
 
-        console.log(mail_source, sollicitation, formation)
+        console.log(path.join(__dirname, '/mail'))
 
         fs.readFile(path.join(__dirname, '/mail/templateSollicitation.html'), { encoding: 'utf-8' }, function (err, dataFile) {
             if (err) {
@@ -48,6 +48,11 @@ module.exports = {
 
                 return transporter.sendMail({
                     to: 'raphael.lebon@pole-emploi.fr',
+                    attachments:[{
+                      filename:'mailingSOL.png',
+                      path:path.join(__dirname, '/mail/mailingSOL.png'),
+                      cid:'banniere',
+                    }],
                     html: dataFile,
                 }, callback)
             }

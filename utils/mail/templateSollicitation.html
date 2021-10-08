@@ -18,9 +18,9 @@
                                 <tbody>
                                     <tr>
                                         <td width="650" valign="middle" align="left">
-                                            <a href="mailto:{{ mail_of }}" target="_blank" rel="noopener noreferrer" data-auth="NotApplicable" title="Accès à la page d'accueil Pôle Emploi">
+                                            <a href="mailto:{{ mail_of }}" target="_blank" rel="noopener noreferrer" data-auth="NotApplicable" title="Répondre">
                                                 <!-- <img src="mailing2.png" alt="Pôle emploi - Demande de formation." width="650" height="219" style="display:block"> -->
-                                                <img src="mailingSOL.png}" alt="Pôle emploi - Demande de formation." width="650" height="219" style="display:block">
+                                                <img src="cid:banniere" alt="Pôle emploi - Demande de formation." width="650" height="219" style="display:block">
                                             </a>
                                         </td>
                                     </tr>
@@ -57,12 +57,16 @@
                                                             <td width="580">
                                                                 <div align="left" style="padding-top:15px; padding-bottom:15px">
                                                                     <p style="color:#666666; margin:1em 0">Bonjour,</p>
-                                                                    <p style="color:#666666; margin:1em 0; font-weight:bold">Par le présent mail, Nous vous sollicitons pour une/des séssion(s) de formation.</p>
-                                                                    <p style="color:#666666; margin:1em 0">Vous trouverez plus d'informations concernant cette sollicitation dans le document en pièce-jointe.</p>
+                                                                    <p style="color:#666666; margin:1em 0; font-weight:bold">Par le présent mail, Nous vous sollicitons l'aciton de formation que vous trouverez en pièce jointe.</p>
+
                                                                     <p style="color:#666666; margin:1em 0">Si vous souhaitez placer un nouveau formateur sur une ou plusieurs formations, merci de nous retourner la page 2 du document joint dûment rempli.</p>
                                                                     
                                                                     <p style="color:#666666; margin:0 0 1em 0">Cordialement,
-                                                                        <br>{{ user }} </p>
+                                                                        <br>
+
+                                            <a href="mailto:{{ mail_of }}" target="_blank" rel="noopener noreferrer" data-auth="NotApplicable" title="Répondre">
+                                            {{ user }} </p>
+                                            </a>
                                                                     <br>
                                                                 </div>
                                                             </td>
@@ -105,7 +109,7 @@
 
                                             </td>
                                             <td width="300" valign="middle">
-                                                <p align="left" style="color:#fff; font-size:0.7em">© 2018 Pôle emploi. Tous droits réservés.</p>
+                                                <p align="left" style="color:#fff; font-size:0.7em">© 2021 Pôle emploi. Tous droits réservés.</p>
                                             </td>
                                             <td width="300">
                                                 <p align="right" style="color:#fff; font-size:0.7em">Sollicitation N°{{ id_sol }}</p>
@@ -134,7 +138,7 @@
 
                                             </td>
                                             <td width="580" valign="middle">
-                                                <p align="center" style="color:#fff; font-size:0.7em; margin:5px">Ce courriel vous est envoyé automatiquement.</p>
+                                                <p align="center" style="color:#fff; font-size:0.7em; margin:5px">Ce courriel vous est envoyé automatiquement, merci de ne pas répondre.</p>
                                                 
                                             </td>
                                             <td width="35">
