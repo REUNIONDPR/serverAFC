@@ -75,11 +75,12 @@ router.put('/sendSollicitation', passport.authenticate('jwt', { session: false }
 
                 const dataMail = {
                     mail_src: jsonResult[0].mail_src,
-                    libelle: libelle,
+                    libelle: data.libelle,
                     contact: jsonResult[0].contact,
                     id: data.id_sol,
-                    bcc:jsonResult[0].mail_src,
+                    // bcc:jsonResult[0].mail_src,
                     // mail_destinataire: data.destinaireMail,
+                    bcc:'nicarap@hotmail.com',
                     mail_destinataire: 'raphael.lebon@pole-emploi.fr',
                 }
 
