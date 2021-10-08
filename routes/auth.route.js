@@ -3,6 +3,7 @@ const router = express.Router();
 const connection = require('../config/db.config');
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
+const pool = require('../config/db.config');
 
 //profile
 router.get('/profile', passport.authenticate('jwt', { session: false }), function (req, res) {
