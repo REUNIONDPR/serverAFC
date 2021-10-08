@@ -424,6 +424,84 @@ module.exports = {
 
         return workbook
 
+    },
+
+    CreateSollicitation: function (wsName = 'Sollicitation', rowsTable) {
+
+        var workbook = new excel.Workbook();
+        var worksheet = workbook.addWorksheet(wsName, { views: [{ zoomScale: 100 }] });
+
+
+        // Entete du fichier
+        worksheet.mergeCells('A1:S1');
+        worksheet.getCell("A1").value = "Sollicitation pour une action de formation";
+        worksheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getCell("A1").font = { name: 'Arial', size: 14, 'bold': true, color: { argb: '000000FF' } };
+        worksheet.getRow(1).height = 90;
+
+        worksheet.mergeCells('A2:S2');
+        worksheet.getCell("A2").value = "AFC";
+        worksheet.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getCell("A2").font = { name: 'Arial', size: 14, 'bold': true, };
+
+        worksheet.mergeCells('A3:S3');
+        worksheet.getCell("A3").value = "Pôle emploi Réunion";
+        worksheet.getCell('A3').alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getCell("A3").font = { name: 'Arial', size: 14, 'bold': true, };
+
+        worksheet.mergeCells('A4:S4');
+        worksheet.getCell("A4").value = `N_MARCHE DR Réunion - LOT`;
+        worksheet.getCell('A4').alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getCell("A4").font = { name: 'Arial', size: 12, 'bold': true, };
+
+
+        worksheet.getRow(8).height = 50;
+
+        for (let i = 1; i < 19; i++) {
+            let letter = String.fromCharCode(65 + i);
+            worksheet.getColumn(letter).width = (i === 3 || i === 6) ? 20 : 13;
+            worksheet.getCell(letter + "6").alignment = { vertical: 'middle', horizontal: 'center' };
+            worksheet.getCell(letter + "6").alignment = { wrapText: true };
+            worksheet.getCell(letter + "7").alignment = { vertical: 'middle', horizontal: 'center' };
+            worksheet.getCell(letter + "7").alignment = { wrapText: true };
+        }
+
+        worksheet.addTable({
+            name: 'MyTable',
+            ref: 'B6',
+            headerRow: true,
+            totalsRow: false,
+            style: {
+                theme: 'TableStyleLight13',
+                showRowStripes: true,
+            },
+            columns: [
+
+                { name: 'Contact' },
+                { name: 'Code Article (n° interne PE)' },
+                { name: 'Intitulé de la formation' },
+                { name: 'Objectif de formation' },
+                { name: 'Niveau de sortie / Type de validation' },
+                { name: 'Code / Intitulé du formacode' },
+                { name: 'Lieu d\'éxécution (A détailler par l\'OF)' },
+                { name: 'Intensité hebdo' },
+                { name: 'Nb de places souhaitée' },
+                { name: 'Nbre de places maxi proposées par l\'OF' },
+                { name: 'Durée max de la session (en h)' },
+                { name: 'Durée en entreprise (en h)' },
+                { name: 'Durée en centre (en h) (4)' },
+                { name: 'Date de démarrage de la session souhaitée' },
+                { name: 'Dates ICOP' },
+                { name: 'Date de début' },
+                { name: 'Commentaires' },
+            ],
+            rows: rowsTable,
+        });
+
+        worksheet.getCell("D7").alignment = { wrapText: true };
+        worksheet.getCell("G7").alignment = { wrapText: true };
+
+        return workbook
     }
 
 

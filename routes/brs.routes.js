@@ -2,7 +2,7 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const pool = require('../config/db.config');
-const xls = require('../excel/createBRS');
+const xls = require('../utils/excel/excel');
 const excel = require('exceljs');
 const fs = require('fs');
 
@@ -197,7 +197,7 @@ router.put('/createFile', passport.authenticate('jwt', { session: false }), (req
         fs.mkdirSync(dir);
     }
 
-    wb.xlsx.writeFile('excel/BRS/' + data.lot + '/' + data.filename)
+    wb.xlsx.writeFile(dir + data.filename)
     wb.xlsx.write(response)
         .then(function () {
             response.status(200).end();
