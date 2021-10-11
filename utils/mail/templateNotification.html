@@ -1,5 +1,5 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Demande de formation</title>
+<title>Notification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <html lang=\"fr\">
 <html>
@@ -22,12 +22,8 @@
                                         <tbody>
                                             <tr>
                                                 <td width="650" valign="middle" align="left">
-                                                    <a href="mailto:{{ mail_of }}" target="_blank"
-                                                        rel="noopener noreferrer" data-auth="NotApplicable"
-                                                        title="Répondre">
-                                                        <!-- <img src="mailing2.png" alt="Pôle emploi - Demande de formation." width="650" height="219" style="display:block"> -->
-                                                        <img src="cid:banniere"
-                                                            alt="Pôle emploi - Demande de formation." width="650"
+                                                    <img src="cid:banniere"
+                                                            alt="Pôle emploi - AFC." width="650"
                                                             height="219" style="display:block">
                                                     </a>
                                                 </td>
@@ -49,7 +45,7 @@
                                                         <tbody>
                                                             <tr>
                                                                 <td width="580" valign="middle">
-                                                                    <p align="center">{{ titulaire }}</p>
+                                                                    <p align="center">NOTIFICATION</p>
                                                                 </td>
                                                             </tr>
                                                             <tr>
@@ -67,24 +63,10 @@
                                                                         style="padding-top:15px; padding-bottom:15px">
                                                                         <p style="color:#666666; margin:1em 0">Bonjour,
                                                                         </p>
-                                                                        <p
-                                                                            style="color:#666666; margin:1em 0; font-weight:bold">
-                                                                            Par le présent mail, Nous vous sollicitons
-                                                                            l'aciton de formation que vous trouverez en
-                                                                            pièce jointe.</p>
+                                                                        {{ message }}
 
                                                                         <p style="color:#666666; margin:0 0 1em 0">
-                                                                            Cordialement,
-                                                                            <br>
-
-                                                                            <a href="mailto:{{ mail_of }}"
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                data-auth="NotApplicable"
-                                                                                title="Répondre">
-                                                                                {{ user }}
-                                                                        </p>
-                                                                        </a>
+                                                                            Application AFC.</p>
                                                                         <br>
                                                                     </div>
                                                                 </td>
@@ -127,12 +109,8 @@
 
                                                 </td>
                                                 <td width="300" valign="middle">
-                                                    <p align="left" style="color:#fff; font-size:0.7em">© 2021 Pôle
+                                                    <p align="left" style="color:#fff; font-size:0.7em">© 2018 Pôle
                                                         emploi. Tous droits réservés.</p>
-                                                </td>
-                                                <td width="300">
-                                                    <p align="right" style="color:#fff; font-size:0.7em">Sollicitation
-                                                        N°{{ id_sol }}</p>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -159,8 +137,7 @@
                                                 </td>
                                                 <td width="580" valign="middle">
                                                     <p align="center" style="color:#fff; font-size:0.7em; margin:5px">Ce
-                                                        courriel vous est envoyé automatiquement, merci de ne pas
-                                                        répondre.</p>
+                                                        courriel vous est envoyé automatiquement.</p>
 
                                                 </td>
                                                 <td width="35">

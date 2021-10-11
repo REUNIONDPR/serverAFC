@@ -28,9 +28,10 @@ module.exports = {
       Modules pour l'envoi des mails
   */
 
-  sendSollicitation: function (data, attachment, callback) {
+  sendMail: function (data, attachment, callback) {
 
-    fs.readFile(path.join(__dirname, '/templateSollicitation.html'), { encoding: 'utf-8' }, function (err, dataFile) {
+    // fs.readFile(path.join(__dirname, '/templateSollicitation.html'), { encoding: 'utf-8' }, function (err, dataFile) {
+    fs.readFile(path.join(__dirname, '/' + data.templateFileName), { encoding: 'utf-8' }, function (err, dataFile) {
 
       if (err) {
         console.log(err);
@@ -46,22 +47,36 @@ module.exports = {
 
         Object.entries(variables).forEach(([k, v]) => dataFile = dataFile.replace('{{ ' + k + ' }}', v))
 
+        // let attachments = [{
+        //   filename: 'banniereSollicitation.png',
+        //   path: path.join(__dirname, '/banniereSollicitation.png'),
+        //   cid: 'banniere',
+        // }];
         let attachments = [{
-          filename: 'mailingSOL.png',
-          path: path.join(__dirname, '/mailingSOL.png'),
+          filename: data.banniereFileName,
+          path: path.join(__dirname, '/' + data.banniereFileName),
           cid: 'banniere',
         }];
 
         if (Object.keys(attachment).length > 0) attachments.push(attachment)
 
+        console.log('------------------------------------------')
+        console.log('SEND MAIL :')
+        console.log('BCC :', data.mail_destinataire)
+        console.log('Destinataire :', data.bcc)
+
+        let bcc_DEV = data.bcc ? 'nicarap@hotmail.com' : '';
+        let mail_destinataire_DEV = 'raphael.lebon@pole-emploi.fr';
+
         return transporter.sendMail({
-          to: data.mail_destinataire,
-          bcc:data.bcc,
+          to: mail_destinataire_DEV,
+          bcc: bcc_DEV,
           attachments: attachments,
           html: dataFile,
         }, callback)
 
       }
     });
+
   }
 }

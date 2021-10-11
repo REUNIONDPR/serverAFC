@@ -7,11 +7,11 @@ const xls = require('../utils/excel/excel');
 const path = require('path');
 const fs = require('fs');
 const pool = require('../config/db.config');
+const { exit } = require('process');
 
 router.put('/sendSollicitation', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     const data = request.body
-    console.log(data)
 
     const sql = `SELECT o.libelle objectif, n.libelle niveau, c.formacode, u.libelle contact, u.mail mail_src
         FROM formation f 
@@ -78,13 +78,13 @@ router.put('/sendSollicitation', passport.authenticate('jwt', { session: false }
                     libelle: data.libelle,
                     contact: jsonResult[0].contact,
                     id: data.id_sol,
-                    // bcc:jsonResult[0].mail_src,
-                    // mail_destinataire: data.destinaireMail,
-                    bcc:'nicarap@hotmail.com',
-                    mail_destinataire: 'raphael.lebon@pole-emploi.fr',
+                    templateFileName: 'templateSollicitation.html',
+                    banniereFileName: 'banniereSollicitation.png',
+                    bcc:jsonResult[0].mail_src,
+                    mail_destinataire: data.destinaireMail,
                 }
 
-                mail.sendSollicitation(dataMail, attachment, (err, data) => {
+                mail.sendMail(dataMail, attachment, (err, data) => {
                     if (err) {
                         console.log(err)
                         response.status(500).json({
@@ -100,10 +100,127 @@ router.put('/sendSollicitation', passport.authenticate('jwt', { session: false }
         })
     })
 
+})
+
+router.put('/sendNotification', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    const data = request.body;
+
+    let sql = '';
+    let sqlValues = [];
+    let dataMail = {
+        templateFileName: 'templateNotification.html',
+        banniereFileName: 'banniereNotification.png',
+    };
+    switch (data.target) {
+
+        // A l'édition d'un BRS, envoi un mail au DT pour les notifier
+        case 'DT_BRS_Edite':
+            sql = `SELECT f.n_Article, c.intitule_form_marche intitule, u.mail mail_destinataire
+                FROM sollicitation s 
+                INNER JOIN formation f ON f.id = s.id_formation
+                INNER JOIN user u ON u.id = f.idgasi
+                INNER JOIN catalogue c ON c.id = f.id_cata
+                WHERE s.id IN ()`;
+
+            sqlValues = data.array_id_sol.join(',');
+            dataMail.message = 'Un BRS à été édité pour les formations suivantes :\r\n';
+
+            pool.getConnection(function (error, conn) {
+                if (error) throw err;
+
+                conn.query(sql, sqlValues, (err, result) => {
+                    conn.release();
+                    if (err) {
+                        console.log(err.sqlMessage)
+                        return response.status(500).json({
+                            err: 'true',
+                            error: err.message,
+                            errno: err.errno,
+                            sql: err.sql,
+                        });
+                    } else {
+
+                        const jsonResult = JSON.parse(JSON.stringify(result));
+
+                        dataMail.message += jsonResult.map((v) => ` - ${v.n_Article} : ${v.intitule}`).join('\r\n');
+                        dataMail.message += `\r\n\r\nBRS ${data.filename}`
+                        dataMail.mail_destinataire = jsonResult[0].mail_destinataire;
+                        dataMail.bcc = null;
+                        dataMail.dateTime = data.dateTime;
+
+                        mail.sendMail(dataMail, attachment, (err, data) => {
+                            if (err) {
+                                console.log(err)
+                                response.status(500).json({
+                                    status: 'fail'
+                                })
+                            } else {
+                                response.status(201).json({
+                                    status: 'success'
+                                })
+                            }
+                        })
+                    }
+                })
+            })
+
+            break;
+
+        case 'conventionnement':
+            // Récupr adresse DT concerné + adresse OF
+
+            sql = `SELECT u.mail mail_destinataire, a.destinataireMail
+                FROM attributaire a 
+                INNER JOIN catalogue_attributaire ca ON ca.id_attributaire = a.id
+                INNER JOIN catalogue c On c.id = ca.id_cata
+                INNER JOIN formation f On f.id_cata = c.id
+                LEFT JOIN user u ON u.id = f.idgasi
+                WHERE f.id = ?`;
+
+            pool.getConnection(function (error, conn) {
+                if (error) throw err;
+
+                conn.query(sql, [data.id], (err, result) => {
+                    conn.release();
+                    if (err) {
+                        console.log(err.sqlMessage)
+                        return response.status(500).json({
+                            err: 'true',
+                            error: err.message,
+                            errno: err.errno,
+                            sql: err.sql,
+                        });
+                    } else {
+
+                        const jsonResult = JSON.parse(JSON.stringify(result));
 
 
+                        dataMail.message = `La formation ${data.formation.intitule} à reçu le numéro de conventionnement suivant : ${data.formation.nConv_tmp}`;
+                        dataMail.mail_destinataire = jsonResult[0].mail_destinataire;
+                        dataMail.bcc = jsonResult[0].bcc;
+                        dataMail.dateTime = data.dateTime;
 
+                        mail.sendMail(dataMail, attachment, (err, data) => {
+                            if (err) {
+                                console.log(err)
+                                response.status(500).json({
+                                    status: 'fail'
+                                })
+                            } else {
+                                response.status(201).json({
+                                    status: 'success'
+                                })
+                            }
+                        })
 
+                    }
+                })
+            })
+
+            break;
+        default: return false;
+    }
 
 })
 
