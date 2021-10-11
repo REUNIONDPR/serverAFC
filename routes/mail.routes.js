@@ -105,7 +105,7 @@ router.put('/sendSollicitation', passport.authenticate('jwt', { session: false }
 router.put('/sendNotification', passport.authenticate('jwt', { session: false }), (request, response) => {
 
     const data = request.body;
-
+    let attachment = {};
     let sql = '';
     let sqlValues = [];
     let dataMail = {
@@ -116,15 +116,19 @@ router.put('/sendNotification', passport.authenticate('jwt', { session: false })
 
         // A l'édition d'un BRS, envoi un mail au DT pour les notifier
         case 'DT_BRS_Edite':
+
+            let sqlComplete = data.array_id_sol.map((v) => '?').join(',');
+
             sql = `SELECT f.n_Article, c.intitule_form_marche intitule, u.mail mail_destinataire
                 FROM sollicitation s 
                 INNER JOIN formation f ON f.id = s.id_formation
                 INNER JOIN user u ON u.id = f.idgasi
                 INNER JOIN catalogue c ON c.id = f.id_cata
-                WHERE s.id IN ()`;
+                WHERE s.id IN (${sqlComplete})`;
 
-            sqlValues = data.array_id_sol.join(',');
-            dataMail.message = 'Un BRS à été édité pour les formations suivantes :\r\n';
+            sqlValues = data.array_id_sol;
+
+            dataMail.message = 'Un BRS à été édité pour les formations suivantes :<br/>';
 
             pool.getConnection(function (error, conn) {
                 if (error) throw err;
@@ -143,8 +147,8 @@ router.put('/sendNotification', passport.authenticate('jwt', { session: false })
 
                         const jsonResult = JSON.parse(JSON.stringify(result));
 
-                        dataMail.message += jsonResult.map((v) => ` - ${v.n_Article} : ${v.intitule}`).join('\r\n');
-                        dataMail.message += `\r\n\r\nBRS ${data.filename}`
+                        dataMail.message += jsonResult.map((v) => ` - ${v.n_Article} : ${v.intitule}`).join('<br/>');
+                        dataMail.message += `<br/><br/>BRS ${data.filename}`
                         dataMail.mail_destinataire = jsonResult[0].mail_destinataire;
                         dataMail.bcc = null;
                         dataMail.dateTime = data.dateTime;
@@ -169,8 +173,8 @@ router.put('/sendNotification', passport.authenticate('jwt', { session: false })
 
         case 'conventionnement':
             // Récupr adresse DT concerné + adresse OF
-
-            sql = `SELECT u.mail mail_destinataire, a.destinataireMail
+            console.log(data)
+            sql = `SELECT u.mail bcc, a.destinataireMail mail_destinataire
                 FROM attributaire a 
                 INNER JOIN catalogue_attributaire ca ON ca.id_attributaire = a.id
                 INNER JOIN catalogue c On c.id = ca.id_cata
@@ -181,7 +185,7 @@ router.put('/sendNotification', passport.authenticate('jwt', { session: false })
             pool.getConnection(function (error, conn) {
                 if (error) throw err;
 
-                conn.query(sql, [data.id], (err, result) => {
+                conn.query(sql, [data.formation.id], (err, result) => {
                     conn.release();
                     if (err) {
                         console.log(err.sqlMessage)
@@ -194,7 +198,6 @@ router.put('/sendNotification', passport.authenticate('jwt', { session: false })
                     } else {
 
                         const jsonResult = JSON.parse(JSON.stringify(result));
-
 
                         dataMail.message = `La formation ${data.formation.intitule} à reçu le numéro de conventionnement suivant : ${data.formation.nConv_tmp}`;
                         dataMail.mail_destinataire = jsonResult[0].mail_destinataire;

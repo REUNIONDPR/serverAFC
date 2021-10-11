@@ -41,6 +41,7 @@ module.exports = {
         let variables = {
           mail_of: data.mail_src,
           titulaire: data.libelle,
+          message:data.message,
           user: data.contact,
           id_sol: data.id,
         }
@@ -62,8 +63,9 @@ module.exports = {
 
         console.log('------------------------------------------')
         console.log('SEND MAIL :')
-        console.log('BCC :', data.mail_destinataire)
-        console.log('Destinataire :', data.bcc)
+        console.log('BCC :', data.bcc)
+        console.log('Destinataire :', data.mail_destinataire)
+        console.log('------------------------------------------')
 
         let bcc_DEV = data.bcc ? 'nicarap@hotmail.com' : '';
         let mail_destinataire_DEV = 'raphael.lebon@pole-emploi.fr';

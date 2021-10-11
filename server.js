@@ -41,17 +41,21 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', function (req, res) {
-  res.sendFile('index.html', { root: __dirname })
-})
+// app.get('*', function (request, response){
+//   response.sendFile(path.resolve(__dirname, 'public', 'index.html'))
+// })
 
-app.post('/api/world', (req, res) => {
-  console.log(req.body);
-  io.emit("sms", req.body.post);
-  // res.send(
-  //   `I received your POST request. This is what you sent me: ${req.body.post}`,
-  // );
-});
+// app.get('/*', function (req, res) {
+//   res.sendFile('index.html', { root: __dirname })
+// })
+
+// app.post('/api/world', (req, res) => {
+//   console.log(req.body);
+//   io.emit("sms", req.body.post);
+//   // res.send(
+//   //   `I received your POST request. This is what you sent me: ${req.body.post}`,
+//   // );
+// });
 
 app.use('/user', userRouter);
 app.use('/auth', authRouter);
