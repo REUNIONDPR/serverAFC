@@ -2,9 +2,10 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const pool = require('../config/db.config');
-const xls = require('../excel/createBRS');
+const xls = require('../utils/excel/excel');
 const excel = require('exceljs');
 const fs = require('fs');
+const path = require('path');
 
 router.put('/create', passport.authenticate('jwt', { session: false }), (request, response) => {
 
@@ -191,13 +192,13 @@ router.put('/createFile', passport.authenticate('jwt', { session: false }), (req
     response.setHeader('Content-Disposition', 'attachment; filename=' + data.filename);
 
     const wb = xls.CreateBrs(data.filename, data.brs, data.attrib, data.rowsTable)
-    const dir = 'excel/BRS/' + data.lot;
+    const dir = path.join(__dirname, '../utils/excel/BRS/' + data.lot)
 
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
     }
 
-    wb.xlsx.writeFile('excel/BRS/' + data.lot + '/' + data.filename)
+    wb.xlsx.writeFile(dir + '/' + data.filename)
     wb.xlsx.write(response)
         .then(function () {
             response.status(200).end();
@@ -232,7 +233,7 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
 
 router.put('/downlaod', passport.authenticate('jwt', { session: false }), (request, response) => {
     const data = request.body;
-    const filePath = `excel/BRS/${data.lot}/${data.filename}`
+    const filePath = path.join(__dirname, `../utils/excel/BRS/${data.lot}/${data.filename}`);
 
     response.download(filePath);
 

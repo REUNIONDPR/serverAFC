@@ -179,9 +179,8 @@ router.put('/addToBRS', passport.authenticate('jwt', { session: false }), (reque
         if (error) throw err;
 
         conn.query(sql, sqlValues, (err, result) => {
-
+            conn.release();
             if (err) {
-                conn.release();
                 console.log(err.sqlMessage)
                 return response.status(500).json({
                     err: 'true',
@@ -196,7 +195,7 @@ router.put('/addToBRS', passport.authenticate('jwt', { session: false }), (reque
                     sqlValues = [data.dateTime, data.sollicitation[i]];
 
                     conn.query(sql, sqlValues, (err) => {
-
+                        conn.release();
                         if (err) {
                             console.log(err.sqlMessage)
                             return response.status(201).json({
@@ -211,7 +210,7 @@ router.put('/addToBRS', passport.authenticate('jwt', { session: false }), (reque
                             sqlValues = [data.sollicitation[i], 9, data.dateTime, 'Edition du BRS :' + data.id_brs + ' Nom :' + data.filename];
         
                             conn.query(sql, sqlValues, (err) => {
-        
+                                conn.release();
                                 if (err) {
                                     console.log(err.sqlMessage)
                                     return response.status(201).json({
@@ -225,7 +224,6 @@ router.put('/addToBRS', passport.authenticate('jwt', { session: false }), (reque
                         }
                     })
                 };
-                conn.release();
                 
                 return response.status(200).json(result)
             }
@@ -489,7 +487,7 @@ router.get('/OFValidePourBRS', passport.authenticate('jwt', { session: false }),
     LEFT JOIN formation f ON f.id = s.id_formation
     LEFT JOIN catalogue c ON c.id = f.id_cata
     LEFT JOIN attributaire a ON a.id = s.attributaire
-    WHERE c.id_lot = ? AND (sh.etat = 8 OR sh.etat = 10 OR sh.etat = 11) AND sh.date_etat = 
+    WHERE c.id_lot = ? AND (sh.etat = 8 OR sh.etat = 11) AND sh.date_etat = 
                         (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id)
     GROUP BY a.id`
 
