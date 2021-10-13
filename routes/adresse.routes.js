@@ -147,8 +147,8 @@ router.put('/create', passport.authenticate('jwt', {session:false}), (request, r
                     sql: err.sql,
                 });
             }else{
-                let io = request.app.get("io");
-                io.emit("updateAdresse", request.body);
+                // let io = request.app.get("io");
+                // io.emit("updateAdresse", request.body);
                 response.status(200).json(result);
             }
         });
@@ -182,8 +182,8 @@ router.put('/delete', passport.authenticate('jwt', {session:false}), (request, r
                     sql: err.sql,
                 });
             }else{
-                let io = request.app.get("io");
-                io.emit("updateAdresse", request.body);
+                // let io = request.app.get("io");
+                // io.emit("updateAdresse", request.body);
                 response.status(200).json(result);
             }
         });

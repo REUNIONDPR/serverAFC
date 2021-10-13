@@ -2,6 +2,8 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const pool = require('../config/db.config');
+const namefield = require('../utils/namefield');
+const xls = require('../utils/excel/excel');
 
 router.put('/create', passport.authenticate('jwt', { session: false }), (request, response) => {
 
@@ -22,9 +24,9 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
         if (error) throw err;
         const data = request.body;
         conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
 
             if (err) {
-                conn.release();
                 console.log(err.sqlMessage)
                 return response.status(500).json({
                     err: 'true',
@@ -62,9 +64,8 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                     let sqlValuesCancel = [data.createNewFormationFromThis.idChange];
 
                     conn.query(sqlCancel, sqlValuesCancel, (err) => {
-
+                        conn.release();
                         if (err) {
-                            conn.release();
                             console.log(err.sqlMessage)
                             return response.status(500).json({
                                 err: 'true',
@@ -153,7 +154,7 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
 
     let sql = `UPDATE formation SET ${field} WHERE id = ?`;
     sqlValues.push(data.id);
-    
+
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         const data = request.body;
@@ -368,9 +369,9 @@ router.put('/conventionnement', passport.authenticate('jwt', { session: false })
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         conn.query(sql, [data.nConv, data.date_nConv, data.id_formation], (err, result) => {
+            conn.release();
 
             if (err) {
-                conn.release();
                 console.log(err.sqlMessage)
                 return response.status(500).json({
                     err: 'true',
@@ -386,6 +387,7 @@ router.put('/conventionnement', passport.authenticate('jwt', { session: false })
                 sqlValues = [data.date_nConv, data.id_sol];
 
                 conn.query(sql, sqlValues, (err) => {
+                    conn.release();
 
                     if (err) {
                         console.log(err.sqlMessage)
@@ -401,6 +403,7 @@ router.put('/conventionnement', passport.authenticate('jwt', { session: false })
                         sqlValues = [data.id_sol, 12, data.date_nConv, data.user + ' : ' + data.nConv]
 
                         conn.query(sql, sqlValues, (err) => {
+                            conn.release();
 
                             if (err) {
                                 console.log(err.sqlMessage)
@@ -415,6 +418,105 @@ router.put('/conventionnement', passport.authenticate('jwt', { session: false })
                     }
                 })
                 response.status(200).json(result);
+            }
+        });
+    });
+
+})
+
+router.get('/export', passport.authenticate('jwt', { session: false }), (request, response) => {
+
+    const data = request.query;
+    // let dataFilter = [];
+
+    let filter = Object.entries(data).map(([k, v]) => {
+        // dataFilter.push(`${namefield.namefield(k)} : ${v}`);
+        if (k === 'etat') {
+            if (v.includes(',')) {
+                return '( ' + v.split(',').map((z) => {
+                    return z === '0' ? `x.id_etat IS NULL` : `x.id_etat=${z}`;
+                }).join(' OR ') + ' )'
+            } else {
+                return `x.id_etat=${v}`;
+            }
+        } else if (k === 'n_Article') {
+            return `f.n_Article like '%${v}%'`;
+        } else if (k === 'userFct') {
+            return `u.fonction = ${v}`;
+        } else {
+            return `${k} = ${v}`;
+        }
+    }).join(' AND ')
+
+    let sql = `SELECT l.libelle, x.attributaire, u.libelle contact, f.agence_ref, f.n_Article, f.nb_place, f.vague, 
+    f.date_entree_demandee, f.date_DDINT1, f.date_DFINT1, f.date_DDINT2, f.date_DFINT2, f.date_fin, 
+    f.heure_centre, f.heure_entreprise, f.heure_max_session, f.nConv,
+    x.adresse, v.libelle commune, d.libelle dispositif, x.etat, x.date_etat, x.id_etat
+    FROM formation f 
+        LEFT JOIN catalogue c ON c.id = f.id_cata
+        LEFT JOIN lot l ON l.id = c.id_lot
+        LEFT JOIN user u ON u.id = f.idgasi
+        LEFT JOIN ville v ON v.id = f.id_commune
+        LEFT JOIN dispositif d ON d.id = f.dispositif
+            LEFT JOIN (
+                SELECT s.id_formation id_f, sh.date_etat, se.etat, sh.etat id_etat, a.adresse, attr.libelle attributaire
+                FROM sollicitation s
+                    LEFT JOIN adresse a ON a.id = s.lieu_execution
+                    LEFT JOIN attributaire attr ON attr.id = s.attributaire
+                    LEFT JOIN sollicitation_historique sh ON sh.id_sol = s.id
+                    LEFT JOIN  sollicitation_etat se ON se.id = sh.etat
+                WHERE sh.date_etat = (SELECT MAX(date_etat) FROM sollicitation_historique h WHERE h.id_sol = s.id) 
+            ) x ON x.id_f = f.id
+    WHERE ${filter}
+    ORDER BY f.date_creation DESC`
+
+    console.log(sql)
+
+    pool.getConnection(function (error, conn) {
+        if (error) throw err;
+
+        conn.query(sql, [], (err, result) => {
+            conn.release();
+
+            if (err) {
+                console.log(err.sqlMessage)
+                return response.status(500).json({
+                    err: 'true',
+                    error: err.message,
+                    errno: err.errno,
+                    sql: err.sql,
+                });
+            } else {
+                const jsonResult = JSON.parse(JSON.stringify(result));
+
+                let headers = []
+                if (Object.keys(jsonResult).length > 0) {
+                    // let data = Object.values(jsonResult).map((v) => {
+                    //     return {...v, date_entree_demandee:}
+                    //     return Object.entries(v).map(([k, v]) => {
+                    //         if (k.includes('date') && v !== null) {
+                    //             let currentDate = new Date(v);
+                    //             return currentDate.getDate().toString().padStart(2, '0') + '/' +
+                    //                 (currentDate.getMonth() + 1).toString().padStart(2, '0') + '/' +
+                    //                 currentDate.getFullYear().toString();
+                    //         } else return v
+                    //     })
+                    // })
+                    // console.log(data)
+                    headers = Object.keys(jsonResult[0]).map((k) => { return { header: namefield.namefield(k), key: k } })
+
+                    response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                    response.setHeader('Content-Disposition', 'attachment; filename=' + 'formation.xlsx');
+
+                    return xls.Export('formation', headers, jsonResult).xlsx.write(response)
+                        .then(function () {
+                            response.status(200).end();
+                        });
+                } else response.status(300).json(result);
+
+
+
+
             }
         });
     });

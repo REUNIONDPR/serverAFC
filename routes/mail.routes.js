@@ -80,7 +80,7 @@ router.put('/sendSollicitation', passport.authenticate('jwt', { session: false }
                     id: data.id_sol,
                     templateFileName: 'templateSollicitation.html',
                     banniereFileName: 'banniereSollicitation.png',
-                    bcc:jsonResult[0].mail_src,
+                    bcc: jsonResult[0].mail_src,
                     mail_destinataire: data.destinaireMail,
                 }
 
@@ -173,7 +173,6 @@ router.put('/sendNotification', passport.authenticate('jwt', { session: false })
 
         case 'conventionnement':
             // Récupr adresse DT concerné + adresse OF
-            console.log(data)
             sql = `SELECT u.mail bcc, a.destinataireMail mail_destinataire
                 FROM attributaire a 
                 INNER JOIN catalogue_attributaire ca ON ca.id_attributaire = a.id
@@ -220,6 +219,84 @@ router.put('/sendNotification', passport.authenticate('jwt', { session: false })
                     }
                 })
             })
+
+            break;
+
+        case 'formationValiderBrs':
+
+            dataMail.message = `La formation ${data.formation.n_Article} : ${data.formation.intitule} est en attente pour validation.`;
+            dataMail.mail_destinataire = 'traitementformation.97410@pole-emploi.fr'; // Adresse de la DO
+            dataMail.dateTime = data.dateTime;
+
+            mail.sendMail(dataMail, attachment, (err, data) => {
+                if (err) {
+                    console.log(err)
+                    response.status(500).json({
+                        status: 'fail'
+                    })
+                } else {
+                    response.status(201).json({
+                        status: 'success'
+                    })
+                }
+            })
+
+            break;
+
+        case 'modificationBRS':
+
+            // sql = `SELECT u.mail bcc, a.destinataireMail mail_destinataire
+            // FROM attributaire a 
+            // INNER JOIN catalogue_attributaire ca ON ca.id_attributaire = a.id
+            // INNER JOIN catalogue c On c.id = ca.id_cata
+            // INNER JOIN formation f On f.id_cata = c.id
+            // LEFT JOIN user u ON u.id = f.idgasi
+            // WHERE f.id = ?
+            
+            // SELECT bs.id_brs, bs.id_sol, f.id id_formation 
+            // FROM brs_sollicitation bs 
+            //     LEFT JOIN sollicitation s ON s.id = bs.id_sol
+            //     LEFT JOIN formation f ON s.id_formation = f.id
+            // WHERE bs.id_brs = 
+            //     (SELECT b.id FROM brs b LEFT JOIN brs_sollicitation bs ON bs.id_brs = b.id WHERE bs.id_sol = ? AND b.modifie_brs = ?)`;
+
+            // pool.getConnection(function (error, conn) {
+            //     if (error) throw err;
+
+            //     conn.query(sql, [data.formation.id], (err, result) => {
+            //         conn.release();
+            //         if (err) {
+            //             console.log(err.sqlMessage)
+            //             return response.status(500).json({
+            //                 err: 'true',
+            //                 error: err.message,
+            //                 errno: err.errno,
+            //                 sql: err.sql,
+            //             });
+            //         } else {
+
+            //             const jsonResult = JSON.parse(JSON.stringify(result));
+
+            //             dataMail.message = `La formation ${data.formation.n_Article} : ${data.formation.intitule} est en attente pour validation.`;
+            //             dataMail.mail_destinataire = jsonResult[0].mail_destinataire;
+            //             dataMail.dateTime = data.dateTime;
+            //             console.log(dataMail)
+            //             // mail.sendMail(dataMail, attachment, (err, data) => {
+            //             //     if (err) {
+            //             //         console.log(err)
+            //             //         response.status(500).json({
+            //             //             status: 'fail'
+            //             //         })
+            //             //     } else {
+            //             //         response.status(201).json({
+            //             //             status: 'success'
+            //             //         })
+            //             //     }
+            //             // })
+
+            //         }
+            //     })
+            // })
 
             break;
         default: return false;

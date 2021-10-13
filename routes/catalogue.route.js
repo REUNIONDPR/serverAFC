@@ -25,28 +25,48 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     // GROUP BY l.id, c.id, c_of.id, catc_adr.id_catalogue_attributaire_commune  ORDER BY l.id, c.id, c_of.priorite `;
 
 
+    // let sql = `SELECT c.id, c.id_lot, c.id_lot lot, c.n_Article, 
+    // c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
+    // c.formacode, c.niveau_form, c.objectif_form, 
+    // c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB, 
+    // catc.id id_of_cata_commune,
+    // GROUP_CONCAT(CONCAT(catc_adr.id_adresse,':',a.adresse, ' - ', v.libelle) SEPARATOR '|')  as adresse,
+    // GROUP_CONCAT(CONCAT(v.id, ':', v.libelle) SEPARATOR ' | ') commune
+    // FROM catalogue c 
+    //     LEFT JOIN lot l ON l.id = c.id_lot
+    //     LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
+    //     LEFT JOIN catalogue_attributaire_commune catc ON catc.id_cata_attr = c_of.id
+    //     LEFT JOIN ville v ON v.id = catc.id_commune
+    //     LEFT JOIN (
+    //             SELECT GROUP_CONCAT(CONCAT(catc_adr.id_adresse,':',a.adresse, ' - ', v.libelle) SEPARATOR '|')  as adresse, id_catalogue_attributaire_commune 
+    //             FROM catalogue_attributaire_commune_adresse catc_adr      
+    //                 LEFT JOIN catalogue_attributaire_commune cac ON cac.id = catc_adr.id_catalogue_attributaire_commune
+    //                 LEFT JOIN catalogue_attributaire ca ON ca.id = cac.id_cata_attr
+    //                 LEFT JOIN adresse a ON a.id = catc_adr.id_adresse
+    //                 LEFT JOIN ville v On v.id = a.commune 
+    //             GROUP BY ca.id
+    //             ) t
+    //         ON t.id_catalogue_attributaire_commune = catc.id
+    //     LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
+    // GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite`
+
     let sql = `SELECT c.id, c.id_lot, c.id_lot lot, c.n_Article, 
-    c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
-    c.formacode, c.niveau_form, c.objectif_form, 
-    c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB, 
-    catc.id id_of_cata_commune, t.adresse,
-    GROUP_CONCAT(CONCAT(v.id, ':', v.libelle) SEPARATOR ' | ') commune
-    FROM catalogue c 
-        LEFT JOIN lot l ON l.id = c.id_lot
-        LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
-        LEFT JOIN catalogue_attributaire_commune catc ON catc.id_cata_attr = c_of.id
-        LEFT JOIN ville v ON v.id = catc.id_commune
-        LEFT JOIN (
-                SELECT GROUP_CONCAT(CONCAT(catc_adr.id_adresse,':',a.adresse, ' - ', v.libelle) SEPARATOR '|')  as adresse, id_catalogue_attributaire_commune FROM catalogue_attributaire_commune_adresse catc_adr      
-                    LEFT JOIN catalogue_attributaire_commune cac ON cac.id = catc_adr.id_catalogue_attributaire_commune
-                    LEFT JOIN catalogue_attributaire ca ON ca.id = cac.id_cata_attr
-                    LEFT JOIN adresse a ON a.id = catc_adr.id_adresse
-                    LEFT JOIN ville v On v.id = a.commune 
-                GROUP BY ca.id
-                ) t
-            ON t.id_catalogue_attributaire_commune = catc.id
-        LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
-    GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite`
+                    c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
+                    c.formacode, c.niveau_form, c.objectif_form, 
+                    c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB, 
+                    catc.id id_of_cata_commune,
+                    GROUP_CONCAT(CONCAT(catc_adr.id_adresse,':',a.adresse, ' - ', v2.libelle) SEPARATOR '|')  as adresse,
+                    GROUP_CONCAT(CONCAT(v.id, ':', v.libelle) SEPARATOR ' | ') commune
+            FROM catalogue c 
+                LEFT JOIN lot l ON l.id = c.id_lot
+                LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
+                LEFT JOIN catalogue_attributaire_commune catc ON catc.id_cata_attr = c_of.id
+                LEFT JOIN ville v ON v.id = catc.id_commune
+                LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
+                LEFT JOIN catalogue_attributaire_commune_adresse catc_adr ON catc_adr.id_catalogue_attributaire_commune = catc.id
+                LEFT JOIN adresse a ON a.id = catc_adr.id_adresse
+                LEFT JOIN ville v2 ON v2.id = a.commune
+            GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite`;
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
@@ -138,8 +158,8 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
                     sql: err.sql,
                 });
             } else {
-                let io = request.app.get("io");
-                io.emit("updateCatalogue", request.body);
+                // let io = request.app.get("io");
+                // io.emit("updateCatalogue", request.body);
                 response.status(200).json(result);
             }
         });
@@ -162,7 +182,6 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
 
     let sql = `INSERT INTO catalogue ${field} VALUES ${value}`;
 
-    console.log(sql, sqlValues)
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         const data = request.body;
@@ -178,8 +197,8 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
                     sql: err.sql,
                 });
             } else {
-                let io = request.app.get("io");
-                io.emit("updateCatalogue", request.body);
+                // let io = request.app.get("io");
+                // io.emit("updateCatalogue", request.body);
                 response.status(200).json(result);
             }
         });
@@ -207,8 +226,8 @@ router.put('/delete', passport.authenticate('jwt', { session: false }), (request
                     sql: err.sql,
                 });
             } else {
-                let io = request.app.get("io");
-                io.emit("updateCatalogue", request.body);
+                // let io = request.app.get("io");
+                // io.emit("updateCatalogue", request.body);
                 response.status(200).json(result);
             }
         });
@@ -218,7 +237,7 @@ router.put('/delete', passport.authenticate('jwt', { session: false }), (request
 router.put('/updateCompteur', passport.authenticate('jwt', { session: false }), (request, response) => {
     const data = request.body;
     const sql = 'UPDATE catalogue_compteur SET nb=? WHERE id_cata = (SELECT id FROM catalogue WHERE n_Article = ?)'
-    
+
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         conn.query(sql, [data.nb, data.n_Article], (err, result) => {
@@ -266,8 +285,8 @@ router.get('/of', passport.authenticate('jwt', { session: false }), (request, re
                     sql: err.sql,
                 });
             } else {
-                let io = request.app.get("io");
-                io.emit("updateCatalogue", request.body);
+                // let io = request.app.get("io");
+                // io.emit("updateCatalogue", request.body);
                 response.status(200).json(result);
             }
         });

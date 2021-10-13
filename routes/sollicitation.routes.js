@@ -26,9 +26,9 @@ router.put('/create', passport.authenticate('jwt', { session: false }), (request
         if (error) throw err;
 
         conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
 
             if (err) {
-                conn.release();
                 console.log(err.sqlMessage)
                 return response.status(500).json({
                     err: 'true',
@@ -74,9 +74,9 @@ router.put('/update', passport.authenticate('jwt', { session: false }), (request
         if (error) throw err;
 
         conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
 
             if (err) {
-                conn.release();
                 console.log(err.sqlMessage)
                 return response.status(500).json({
                     err: 'true',
@@ -126,9 +126,9 @@ router.put('/save', passport.authenticate('jwt', { session: false }), (request, 
         if (error) throw err;
 
         conn.query(sql, sqlValues, (err, result) => {
+            conn.release();
 
             if (err) {
-                conn.release();
                 console.log(err.sqlMessage)
                 return response.status(500).json({
                     err: 'true',
