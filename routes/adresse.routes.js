@@ -46,7 +46,7 @@ router.get('/find', passport.authenticate('jwt', { session: false }), (request, 
 
 router.get('/findOuter', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sql = `SELECT a.id, a.adresse, v.libelle commune
+    let sql = `SELECT a.id, a.adresse, v.libelle commune, v.id id_commune
         FROM adresse a 
         LEFT JOIN catalogue_attributaire_commune_adresse ac ON ac.id_adresse = a.id
         LEFT JOIN ville v ON v.id = a.commune 

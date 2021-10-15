@@ -5,13 +5,17 @@ const pool = require('../config/db.config');
 
 router.put('/addAdresse', passport.authenticate('jwt', { session: false }), (request, response) => {
 
-    let sql = 'INSERT INTO catalogue_attributaire_commune_adresse (id_catalogue_attributaire_commune, id_adresse) VALUES (?,?)';
+    let sql = `INSERT INTO catalogue_attributaire_commune_adresse (id_catalogue_attributaire_commune, id_adresse) VALUES 
+    (
+        (SELECT cac.id FROM catalogue_attributaire_commune cac WHERE cac.id_commune = ? AND cac.id_cata_attr = ?)
+        ,?
+    )`;
     let data = request.body;
-
+    
     pool.getConnection(function (error, conn) {
         if (error) throw err;
         const data = request.body;
-        conn.query(sql, [data.id_of_cata_commune, data.id_adresse], (err, result) => {
+        conn.query(sql, [data.id_commune, data.id_of_cata, data.id_adresse], (err, result) => {
             conn.release();
 
             if (err) {

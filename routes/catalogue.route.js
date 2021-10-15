@@ -50,23 +50,45 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     //     LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
     // GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite`
 
+    // let sql = `SELECT c.id, c.id_lot, c.id_lot lot, c.n_Article, 
+    //                 c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
+    //                 c.formacode, c.niveau_form, c.objectif_form, 
+    //                 c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB, 
+    //                 catc.id id_of_cata_commune,
+    //                 GROUP_CONCAT(CONCAT(catc_adr.id_adresse,':',a.adresse, ' - ', v2.libelle) SEPARATOR '|')  as adresse,
+    //                 GROUP_CONCAT(CONCAT(v.id, ':', v.libelle) SEPARATOR ' | ') commune
+    //         FROM catalogue c 
+    //             LEFT JOIN lot l ON l.id = c.id_lot
+    //             LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
+    //             LEFT JOIN catalogue_attributaire_commune catc ON catc.id_cata_attr = c_of.id
+    //             LEFT JOIN ville v ON v.id = catc.id_commune
+    //             LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
+    //             LEFT JOIN catalogue_attributaire_commune_adresse catc_adr ON catc_adr.id_catalogue_attributaire_commune = catc.id
+    //             LEFT JOIN adresse a ON a.id = catc_adr.id_adresse
+    //             LEFT JOIN ville v2 ON v2.id = a.commune
+    //         GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite`;
+
     let sql = `SELECT c.id, c.id_lot, c.id_lot lot, c.n_Article, 
-                    c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
-                    c.formacode, c.niveau_form, c.objectif_form, 
-                    c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB, 
-                    catc.id id_of_cata_commune,
-                    GROUP_CONCAT(CONCAT(catc_adr.id_adresse,':',a.adresse, ' - ', v2.libelle) SEPARATOR '|')  as adresse,
-                    GROUP_CONCAT(CONCAT(v.id, ':', v.libelle) SEPARATOR ' | ') commune
-            FROM catalogue c 
-                LEFT JOIN lot l ON l.id = c.id_lot
-                LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
-                LEFT JOIN catalogue_attributaire_commune catc ON catc.id_cata_attr = c_of.id
-                LEFT JOIN ville v ON v.id = catc.id_commune
-                LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
-                LEFT JOIN catalogue_attributaire_commune_adresse catc_adr ON catc_adr.id_catalogue_attributaire_commune = catc.id
-                LEFT JOIN adresse a ON a.id = catc_adr.id_adresse
-                LEFT JOIN ville v2 ON v2.id = a.commune
-            GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite`;
+    c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
+    c.formacode, c.niveau_form, c.objectif_form, 
+    c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB, 
+    GROUP_CONCAT(DISTINCT(CONCAT(v.id, ':', v.libelle)) SEPARATOR ' | ') commune,
+    GROUP_CONCAT(CONCAT(caca.id_adresse,':',a.adresse, ' - ', v2.libelle) SEPARATOR '|')  as adresse
+    
+    FROM catalogue c 
+        LEFT JOIN lot l ON l.id = c.id_lot
+        LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
+        LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
+
+        LEFT JOIN catalogue_attributaire_commune cac ON cac.id_cata_attr = c_of.id
+        LEFT JOIN ville v ON v.id = cac.id_commune       
+
+        
+        LEFT JOIN catalogue_attributaire_commune_adresse caca ON caca.id_catalogue_attributaire_commune = cac.id
+        LEFT JOIN adresse a ON a.id = caca.id_adresse
+        LEFT JOIN ville v2 ON v2.id = a.commune       
+
+    GROUP BY c.id, of.id, of.id`;
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
@@ -83,11 +105,48 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
                 });
             }
             else {
+                
+                const jsonResult = JSON.parse(JSON.stringify(result));
+
+                Object.values(jsonResult).map((v) => {
+
+                })
                 response.status(200).json(result);
             }
 
         });
     });
+})
+
+router.get('/findAdresse', passport.authenticate('jwt', { session: false }), (request, response) => { 
+    // envoi liste de formation, retourne les adresses de la formation
+    const data = request.query;
+    console.log(data)
+    // let sql = `SELECT c.*, c.intitule_form_marche intitule, cc.nb FROM catalogue c 
+    // LEFT JOIN catalogue_compteur cc ON cc.id_cata = c.id
+    // WHERE ${data.field} = ?`;
+
+    // pool.getConnection(function (error, conn) {
+    //     if (error) throw err;
+    //     conn.query(sql, [data.data], (err, result) => {
+    //         conn.release();
+
+    //         if (err) {
+    //             console.log(err.sqlMessage)
+    //             return response.status(500).json({
+    //                 err: "true",
+    //                 error: err.message,
+    //                 errno: err.errno,
+    //                 sql: err.sql,
+    //             });
+    //         }
+    //         else {
+    //             response.status(200).json(result);
+    //         }
+
+    //     });
+    // });
+
 })
 
 // catalogue/find?data.field=? -> Toutes les formations selon le lot
