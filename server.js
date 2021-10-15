@@ -12,7 +12,7 @@ const attributaireRouter = require('./routes/attributaire.routes')
 const sollicitationRouter = require('./routes/sollicitation.routes');
 const lotRouter = require('./routes/lot.routes');
 const brsRouter = require('./routes/brs.routes');
-const stocksRouter = require('./routes/stocks.routes');
+const adminRouter = require('./routes/admin/admin.routes');
 
 require('dotenv').config();
 require('./passport/Passport');
@@ -23,7 +23,6 @@ const server = require('http').Server(app)
 const morgan = require('morgan');
 
 // Pour la production
-app.use(express.static(path.join(__dirname, '../clientAFC/build')));
 
 app.use(morgan('dev'));
 app.use(bodyParser.json());
@@ -41,16 +40,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', function (req, res) {
-  res.sendFile('index.html', { root: __dirname })
-})
-
-app.post('/api/world', (req, res) => {
-  console.log(req.body);
-  io.emit("sms", req.body.post);
-  // res.send(
-  //   `I received your POST request. This is what you sent me: ${req.body.post}`,
-  // );
+// PROD
+app.use(express.static(path.join(__dirname, '../clientAFC/build')));
+app.get('/', (request, response) => {
+  res.sendFile(path.join(__dirname, '../clientAFC/build'));
 });
 
 app.use('/user', userRouter);
@@ -64,7 +57,7 @@ app.use('/lot', lotRouter);
 app.use('/sollicitation', sollicitationRouter);
 app.use('/mail', mailrouter);
 app.use('/brs', brsRouter);
-app.use('/stocks', stocksRouter);
+app.use('/admin', adminRouter);
 // pool.getConnection(function(err) {
 //   if (err) throw err;
 //   console.log("Connecté à la base de données MySQL!");
