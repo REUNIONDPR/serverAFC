@@ -68,7 +68,7 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     //             LEFT JOIN ville v2 ON v2.id = a.commune
     //         GROUP BY l.id, c.id, c_of.id ORDER BY l.id, c.id, c_of.priorite`;
 
-    let sql = `SELECT c.id, c.id_lot, c.id_lot lot, c.n_Article, 
+    let sql = `SELECT c.id, c.id_lot, c.id_lot lot, lb.bassin, c.n_Article, 
     c.intitule_form_marche, c.intitule_form_base_article, c_of.priorite, of.libelle of, c_of.id id_of_cata,
     c.formacode, c.niveau_form, c.objectif_form, 
     c.nb_heure_socle, c.nb_heure_ent, c.nb_heure_appui, c.nb_heure_soutien, c.prixTrancheA, c.prixTrancheB, 
@@ -77,6 +77,7 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
     
     FROM catalogue c 
         LEFT JOIN lot l ON l.id = c.id_lot
+        LEFT JOIN lot_bassin lb On l.id = lb.id_lot
         LEFT JOIN catalogue_attributaire c_of ON c_of.id_cata = c.id
         LEFT JOIN attributaire of ON of.id = c_of.id_attributaire
 
@@ -88,7 +89,7 @@ router.get('/findAll', passport.authenticate('jwt', { session: false }), (reques
         LEFT JOIN adresse a ON a.id = caca.id_adresse
         LEFT JOIN ville v2 ON v2.id = a.commune       
 
-    GROUP BY c.id, of.id, of.id`;
+    GROUP BY lb.id, c.id, of.id`;
 
     pool.getConnection(function (error, conn) {
         if (error) throw err;
